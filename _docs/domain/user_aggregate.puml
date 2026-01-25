@@ -1,0 +1,29 @@
+@startuml user_aggregate
+hide circle
+title User Domain
+
+entity User <<Aggregate>><<Entity>> {
+	ID : int
+	AvatarUrl : string
+	Provider : string
+	ProviderID : string	
+}
+
+entity Username <<Value Object>><<Tinystr>> {
+	Username : string
+}
+
+entity Email <<Value Object>><<Email>> {
+	Email : string
+}
+
+entity "Audit Fields" as Audit <<Audit>> #cceaf0 {
+	CreatedAt : time.Time
+	UpdatedAt : time.Time
+}
+
+User --> Username
+User --> Email
+User -l-> Audit
+
+@enduml

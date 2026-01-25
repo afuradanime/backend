@@ -1,0 +1,90 @@
+@startuml anime_aggregate
+hide circle
+title Anime Domain
+
+entity Anime <<Aggregate>> {
+	ID : uint
+	Title : string
+	Episodes : uint
+	DurationValue : float
+	Picture : string
+	Thumbnail : string
+}
+
+entity Synonym <<Value Object>> {
+	Synonym : string
+}
+
+entity Source <<Value Object>> {
+	Source : string
+}
+
+entity Description <<Value Object>> {
+	Description : string
+}
+
+entity Language <<enumerator>> {
+	PORTUGUESE
+	ENGLISH
+}
+
+entity Season <<Value Object>> {
+	Year : int
+}
+
+entity "Meteorological\nSeason" as MetSeason <<enumerator>> {
+	WINTER
+	SPRING
+	SUMMER
+	FALL
+	UNDEFINED
+}
+
+entity AnimeType <<enumerator>> {
+	TV
+	MOVIE
+	OVA
+	ONA
+	SPECIAL
+	UNKNOWN_TYPE
+}
+
+entity AnimeStatus <<enumerator>> {
+	UNKNOWN_STATUS
+	FINISHED
+	ONGOING
+	UPCOMING
+}
+
+entity RelatedAnime <<Value Object>> {
+	RelatedAnime : string
+}
+
+entity Tag <<Value Object>> {
+	Tag : string
+}
+
+entity Producer <<Value Object>> {
+	Producer : string
+}
+
+entity Studio <<Value Object>> {
+	Studio : string
+}
+
+Anime --> "0..*" Synonym
+Anime --> "0..*" Source
+Anime --> "0..*" Description
+Anime --> Season
+Anime --> AnimeType
+Anime --> AnimeStatus
+Anime --> "0..*" RelatedAnime
+Anime --> "0..*" Tag
+Anime --> "0..*" Producer
+Anime --> "0..*" Studio
+
+Description --> Language
+
+Season --> MetSeason
+
+@enduml

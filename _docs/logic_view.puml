@@ -1,0 +1,55 @@
+@startuml logical_view
+hide circle
+title Backend Logical View
+!define IA_WIDTH <color:transparent>______________________________________________________________________________</color>
+!define ABS_WIDTH <color:transparent>______________________________________________________________</color>
+!define DBR_WIDTH <color:transparent>___________________________________________________________</color>
+
+circle "API" as API
+database "AnimeDB" as AnimeDB
+database "SocialDB" as SocialDB
+component "anime_facts.dll" as AF_DLL
+
+package "Backend" {
+	rectangle "Frameworks & Drivers" {
+		[Chi Routing] as ROUTE
+		[Anime Facts\nPersistence] as AF
+		[Social\nPersistence] as SOCIAL
+	}
+
+	rectangle "IA_WIDTH Interface Adapters IA_WIDTH" {
+		[Handler] as HANDLER
+		[SocialRepo] as S_REPO
+		[AnimeRepo] as A_REPO
+	}
+
+	rectangle "ABS_WIDTH Application Business Rules ABS_WIDTH" {
+		[App Services] as SVC
+	}
+
+	rectangle " DBR_WIDTH Domain Business Rules DBR_WIDTH" {
+		[Domain Model] as DOMAIN
+	}
+
+	circle "DM API" as DM_API
+
+}
+
+ROUTE -u- API
+AF_DLL -u(0- AnimeDB
+AF_DLL -0)- AF
+SocialDB -0)- SOCIAL
+
+HANDLER --0)- ROUTE : H API
+SVC --0)- HANDLER : SvcAPI
+
+AF --0)- A_REPO : AF API
+SOCIAL --0)-  S_REPO : SP API
+S_REPO --0)- SVC : SR API
+A_REPO --0)- SVC : AR API
+
+DOMAIN -u- DM_API
+SVC --( DM_API 
+S_REPO ---( DM_API
+
+@enduml
