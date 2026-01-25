@@ -13,7 +13,8 @@ func InitRoutes(r *chi.Mux) {
 	r.Mount("/users", BootstrapUserModule())
 	log.Println("[Routing] User routes initialized...")
 
-	//...
+	r.Mount("/anime", BootstrapAnimeModule())
+	log.Println("[Routing] Anime routes initialized...")
 
 	log.Println("[Routing] All routes initialized successfully!")
 }
@@ -25,6 +26,17 @@ func BootstrapUserModule() chi.Router {
 
 	r := chi.NewRouter()
 	r.Get("/{id}", userController.GetUserByID)
+
+	return r
+}
+
+func BootstrapAnimeModule() chi.Router {
+	animeRepo := repositories.NewAnimeRepository()
+	animeService := services.NewAnimeService(animeRepo)
+	animeController := controllers.NewAnimeController(animeService)
+
+	r := chi.NewRouter()
+	r.Get("/{id}", animeController.GetAnimeByID)
 
 	return r
 }
