@@ -33,10 +33,11 @@ func (r *AnimeRepository) FetchAnimeByID(animeID uint32) (*domain.Anime, error) 
 		return nil, errors.New("There's no Anime with id " + strconv.Itoa(int(animeID)))
 	}
 
-	// decode the duration pointer
+	// decode the duration pointer - copy to Go memory before freeing C memory
 	var duration *float32 = nil
 	if animePtr.duration_value != nil {
-		duration = (*float32)(animePtr.duration_value)
+		durationVal := float32(*animePtr.duration_value)
+		duration = &durationVal
 	}
 
 	// save the c information in a go struct
@@ -94,9 +95,56 @@ func (r *AnimeRepository) FetchAnimeFromQuery(name string, pageNumber, pageSize 
 
 		var duration *float32 = nil
 		if animePtr.duration_value != nil {
-			duration = (*float32)(animePtr.duration_value)
+			// Copy the value to Go memory before freeing C memory
+			durationVal := float32(*animePtr.duration_value)
+			duration = &durationVal
 		}
 
+		results[i] = domain.NewAnime(
+			uint32(animePtr.id),
+			C.GoString(animePtr.sources),
+			C.GoString(animePtr.title),
+			uint32(animePtr._type),
+			uint32(animePtr.episodes),
+			uint32(animePtr.status),
+			C.GoString(animePtr.picture),
+			C.GoString(animePtr.thumbnail),
+			duration,
+		)
+	}
+
+	C.free_anime_array(animeArray, C.uint(count))
+
+	return results, nil
+}
+
+func (r *AnimeRepository) FetchAnimeThisSeason() ([]*domain.Anime, error) {
+	var count C.uint
+	var animeArray *C.anime_t
+
+	var rc = C.fetch_anime_this_season(&count, &animeArray)
+
+	if rc != 0 {
+		return nil, errors.New("Failed to fetch anime for this season")
+	}
+
+	if count == 0 {
+		return []*domain.Anime{}, nil
+	}
+
+	// Convert C array in Go slice
+	var results []*domain.Anime
+	animeSlice := unsafe.Slice(animeArray, count)
+	results = make([]*domain.Anime, count)
+
+	for i := 0; i < int(count); i++ {
+		animePtr := &animeSlice[i]
+		var duration *float32 = nil
+		if animePtr.duration_value != nil {
+			// Copy the value to Go memory before freeing C memory
+			durationVal := float32(*animePtr.duration_value)
+			duration = &durationVal
+		}
 		results[i] = domain.NewAnime(
 			uint32(animePtr.id),
 			C.GoString(animePtr.sources),

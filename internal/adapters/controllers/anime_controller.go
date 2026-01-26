@@ -61,3 +61,13 @@ func (ac *AnimeController) SearchAnime(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(animes)
 }
+
+func (ac *AnimeController) GetAnimeThisSeason(w http.ResponseWriter, r *http.Request) {
+	animes, err := ac.animeService.FetchAnimeThisSeason()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(animes)
+}

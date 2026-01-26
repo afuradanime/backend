@@ -38,6 +38,7 @@ func BootstrapAnimeModule() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/{id}", animeController.GetAnimeByID)
 	r.Get("/search", animeController.SearchAnime)
+	r.Get("/seasonal", animeController.GetAnimeThisSeason)
 
 	return r
 }
