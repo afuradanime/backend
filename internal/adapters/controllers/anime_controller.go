@@ -33,3 +33,31 @@ func (ac *AnimeController) GetAnimeByID(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(anime)
 }
+
+func (ac *AnimeController) SearchAnime(w http.ResponseWriter, r *http.Request) {
+	// Get query parameter
+	query := r.URL.Query().Get("q")
+	if query == "" {
+		http.Error(w, "Query parameter 'q' is required", http.StatusBadRequest)
+		return
+	}
+
+	// Get pagination parameters with defaults
+	pageNumber := 0
+	pageSize := 50 // Im keeping page sized fixed, maybe move it to the config or let the user set it idk
+
+	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p >= 0 {
+			pageNumber = p
+		}
+	}
+
+	animes, err := ac.animeService.FetchAnimeFromQuery(query, pageNumber, pageSize)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(animes)
+}
