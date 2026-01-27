@@ -3,19 +3,19 @@ package domain
 import "time"
 
 // TODO: Deviamos por isto num helper.go? depois ve como queres fazer isso
-func ParseISODate(s *string) (*time.Time, error) {
+func ParseISODate(s *string) *time.Time {
 	if s == nil || *s == "" {
-		return nil, nil
+		return nil
 	}
 
 	if t, err := time.Parse(time.RFC3339, *s); err == nil {
-		return &t, nil
+		return &t
 	}
 
 	// Oops
 	// TODO: fazer alguma coisa ??
 	t := time.Now()
-	return &t, nil
+	return &t
 }
 
 type Anime struct {
@@ -76,31 +76,8 @@ func NewAnime(
 	trailerEmbedURL string,
 ) (*Anime, error) {
 
-	var startDate *time.Time
-	if startDateISO != "" {
-		if t, err := time.Parse(time.RFC3339, startDateISO); err == nil {
-			startDate = &t
-		} else {
-			t, err := time.Parse("2006-01-02", startDateISO)
-			if err != nil {
-				return nil, err
-			}
-			startDate = &t
-		}
-	}
-
-	var endDate *time.Time
-	if endDateISO != "" {
-		if t, err := time.Parse(time.RFC3339, endDateISO); err == nil {
-			endDate = &t
-		} else {
-			t, err := time.Parse("2006-01-02", endDateISO)
-			if err != nil {
-				return nil, err
-			}
-			endDate = &t
-		}
-	}
+	var startDate *time.Time = ParseISODate(&startDateISO)
+	var endDate *time.Time = ParseISODate(&endDateISO)
 
 	anime := &Anime{
 		ID:       id,
