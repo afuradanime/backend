@@ -1,7 +1,8 @@
 package repositories
 
 /*
-#cgo LDFLAGS: -L${SRCDIR}/../../../drivers -lanime_facts
+#cgo linux LDFLAGS: -L${SRCDIR}/../../../drivers -Wl,-rpath,${SRCDIR}/../../../drivers -lanime_facts
+#cgo windows LDFLAGS: -L${SRCDIR}/../../../drivers -lanime_facts
 #cgo CFLAGS: -I${SRCDIR}/../../../../anime-facts-core/include
 
 #include "anime_facts_api.h"
