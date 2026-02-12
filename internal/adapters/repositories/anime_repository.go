@@ -15,13 +15,18 @@ import (
 	"strconv"
 	"unsafe"
 
+	"github.com/afuradanime/backend/internal/adapters/mappers"
 	"github.com/afuradanime/backend/internal/core/domain"
 )
 
-type AnimeRepository struct{}
+type AnimeRepository struct {
+	animeMapper *mappers.AnimeMapper
+}
 
 func NewAnimeRepository() *AnimeRepository {
-	return &AnimeRepository{}
+	return &AnimeRepository{
+		animeMapper: mappers.NewAnimeMapper(),
+	}
 }
 
 func (r *AnimeRepository) FetchAnimeByID(animeID uint32) (*domain.Anime, error) {
@@ -34,117 +39,16 @@ func (r *AnimeRepository) FetchAnimeByID(animeID uint32) (*domain.Anime, error) 
 		return nil, errors.New("There's no Anime with id " + strconv.Itoa(int(animeID)))
 	}
 
-	// save the c information in a go struct
-	anime, err := domain.NewAnime(
-		uint32(animePtr.id),
-		C.GoString(animePtr.url),
-		C.GoString(animePtr.title),
-		domain.AnimeType(animePtr._type),
-		C.GoString(animePtr.source),
-		uint32(animePtr.episodes),
-		domain.AnimeStatus(animePtr.status),
-		bool(animePtr.airing),
-		C.GoString(animePtr.duration),
-		C.GoString(animePtr.start_date),
-		C.GoString(animePtr.end_date),
-		domain.SeasonType(animePtr.season.season),
-		uint16(animePtr.season.year),
-		C.GoString(animePtr.broadcast.day),
-		C.GoString(animePtr.broadcast.time),
-		C.GoString(animePtr.broadcast.timezone),
-		C.GoString(animePtr.image_url),
-		C.GoString(animePtr.small_image_url),
-		C.GoString(animePtr.large_image_url),
-		C.GoString(animePtr.trailer_embed_url),
-	)
-
-	if err != nil {
-		C.free_anime(&animePtr)
-		return nil, err
-	}
-
-	// Fill synonyms
-	if animePtr.synonyms.count > 0 {
-		synonymsSlice := unsafe.Slice(animePtr.synonyms.items, animePtr.synonyms.count)
-		for _, synonymPtr := range synonymsSlice {
-			if synonymPtr != nil {
-				anime.AddSynonym(C.GoString(synonymPtr))
-			}
-		}
-	}
-
-	// Fill descriptions
-	if animePtr.descriptions.count > 0 {
-		descriptionsSlice := unsafe.Slice(animePtr.descriptions.items, animePtr.descriptions.count)
-		for _, descPtr := range descriptionsSlice {
-			if descPtr.description != nil {
-				desc := domain.Description{
-					Language:    domain.Language(descPtr.language),
-					Description: C.GoString(descPtr.description),
-				}
-				anime.AddDescription(desc)
-			}
-		}
-	}
-
-	// Fill tags
-	if animePtr.tags.count > 0 {
-		tagsSlice := unsafe.Slice(animePtr.tags.items, animePtr.tags.count)
-		for _, tagPtr := range tagsSlice {
-			tag := domain.Tag{
-				ID:   uint32(tagPtr.id),
-				Name: C.GoString(tagPtr.name),
-				Type: domain.TagType(tagPtr._type),
-				URL:  C.GoString(tagPtr.url),
-			}
-			anime.AddTag(tag)
-		}
-	}
-
-	// Fill producers
-	if animePtr.producers.count > 0 {
-		producersSlice := unsafe.Slice(animePtr.producers.items, animePtr.producers.count)
-		for _, producerPtr := range producersSlice {
-			producer := domain.Producer{
-				ID:   uint32(producerPtr.id),
-				Name: C.GoString(producerPtr.name),
-				Type: C.GoString(producerPtr._type),
-				URL:  C.GoString(producerPtr.url),
-			}
-			anime.AddProducer(producer)
-		}
-	}
-
-	// Fill licensors
-	if animePtr.licensors.count > 0 {
-		licensorsSlice := unsafe.Slice(animePtr.licensors.items, animePtr.licensors.count)
-		for _, licensorPtr := range licensorsSlice {
-			licensor := domain.Licensor{
-				ID:   uint32(licensorPtr.id),
-				Name: C.GoString(licensorPtr.name),
-				Type: C.GoString(licensorPtr._type),
-				URL:  C.GoString(licensorPtr.url),
-			}
-			anime.AddLicensor(licensor)
-		}
-	}
-
-	// Fill studios
-	if animePtr.studios.count > 0 {
-		studiosSlice := unsafe.Slice(animePtr.studios.items, animePtr.studios.count)
-		for _, studioPtr := range studiosSlice {
-			studio := domain.Studio{
-				ID:   uint32(studioPtr.id),
-				Name: C.GoString(studioPtr.name),
-				URL:  C.GoString(studioPtr.url),
-			}
-			anime.AddStudio(studio)
-		}
-	}
+	// Convert the C struct to a Go struct
+	anime, err := r.animeMapper.CtoGo(unsafe.Pointer(&animePtr))
 
 	// now it's handled by the go GC
 	// so we may free it
 	C.free_anime(&animePtr)
+
+	if err != nil {
+		return nil, err
+	}
 
 	return anime, nil
 }
@@ -182,28 +86,7 @@ func (r *AnimeRepository) FetchAnimeFromQuery(name string, pageNumber, pageSize 
 	for i := 0; i < int(count); i++ {
 		a := &animeSlice[i]
 
-		anime, err := domain.NewAnime(
-			uint32(a.id),
-			C.GoString(a.url),
-			C.GoString(a.title),
-			domain.AnimeType(a._type),
-			C.GoString(a.source),
-			uint32(a.episodes),
-			domain.AnimeStatus(a.status),
-			bool(a.airing),
-			C.GoString(a.duration),
-			C.GoString(a.start_date),
-			C.GoString(a.end_date),
-			domain.SeasonType(a.season.season),
-			uint16(a.season.year),
-			C.GoString(a.broadcast.day),
-			C.GoString(a.broadcast.time),
-			C.GoString(a.broadcast.timezone),
-			C.GoString(a.image_url),
-			C.GoString(a.small_image_url),
-			C.GoString(a.large_image_url),
-			C.GoString(a.trailer_embed_url),
-		)
+		anime, err := r.animeMapper.CtoGo(unsafe.Pointer(a))
 
 		if err != nil {
 			C.free_partial_anime_array(animeArray, count)
@@ -236,28 +119,7 @@ func (r *AnimeRepository) FetchAnimeThisSeason() ([]*domain.Anime, error) {
 	for i := 0; i < int(count); i++ {
 		a := &animeSlice[i]
 
-		anime, err := domain.NewAnime(
-			uint32(a.id),
-			C.GoString(a.url),
-			C.GoString(a.title),
-			domain.AnimeType(a._type),
-			C.GoString(a.source),
-			uint32(a.episodes),
-			domain.AnimeStatus(a.status),
-			bool(a.airing),
-			C.GoString(a.duration),
-			C.GoString(a.start_date),
-			C.GoString(a.end_date),
-			domain.SeasonType(a.season.season),
-			uint16(a.season.year),
-			C.GoString(a.broadcast.day),
-			C.GoString(a.broadcast.time),
-			C.GoString(a.broadcast.timezone),
-			C.GoString(a.image_url),
-			C.GoString(a.small_image_url),
-			C.GoString(a.large_image_url),
-			C.GoString(a.trailer_embed_url),
-		)
+		anime, err := r.animeMapper.CtoGo(unsafe.Pointer(a))
 
 		if err != nil {
 			C.free_partial_anime_array(animeArray, count)
