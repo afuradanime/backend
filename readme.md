@@ -7,3 +7,6 @@ Um *Backend* desenvolvido em [Go](https://go.dev/), responsável por disponibili
 **Bibliotecas externas utilizadas:**
 * **[Chi](github.com/go-chi/chi/v5)** - Router leve e idiomático para Go
 * **[Godotenv](github.com/joho/godotenv)** - Carregamento de variáveis de ambiente por ficheiros `.env`
+
+## Como correr o backend
+`go run .\cmd\api\main.go`

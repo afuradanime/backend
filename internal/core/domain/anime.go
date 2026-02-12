@@ -120,3 +120,30 @@ func NewAnime(
 
 	return anime, nil
 }
+
+// Builder methods for the full anime fields.
+// We can use these to fill in the full anime fields after we create the partial anime with the NewAnime constructor
+// Perhaps we should have methods to add as list
+func (anime *Anime) AddDescription(desc Description) {
+	anime.Descriptions = append(anime.Descriptions, desc)
+}
+
+func (anime *Anime) AddSynonym(synonym string) {
+	anime.Synonyms = append(anime.Synonyms, synonym)
+}
+
+func (anime *Anime) AddTag(tag Tag) {
+	anime.Tags = append(anime.Tags, tag)
+}
+
+func (anime *Anime) AddProducer(producer Producer) {
+	anime.Producers = append(anime.Producers, producer)
+}
+
+func (anime *Anime) AddLicensor(licensor Licensor) {
+	anime.Licensors = append(anime.Licensors, licensor)
+}
+
+func (anime *Anime) AddStudio(studio Studio) {
+	anime.Studios = append(anime.Studios, studio)
+}

@@ -45,6 +45,7 @@ func (ac *AnimeController) SearchAnime(w http.ResponseWriter, r *http.Request) {
 	// Get pagination parameters with defaults
 	pageNumber := 0
 	pageSize := 50 // Im keeping page sized fixed, maybe move it to the config or let the user set it idk
+	// True answer: Let user decide but clamp it to a fixed size
 
 	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p >= 0 {

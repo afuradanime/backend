@@ -63,6 +63,85 @@ func (r *AnimeRepository) FetchAnimeByID(animeID uint32) (*domain.Anime, error) 
 		return nil, err
 	}
 
+	// Fill synonyms
+	if animePtr.synonyms.count > 0 {
+		synonymsSlice := unsafe.Slice(animePtr.synonyms.items, animePtr.synonyms.count)
+		for _, synonymPtr := range synonymsSlice {
+			if synonymPtr != nil {
+				anime.AddSynonym(C.GoString(synonymPtr))
+			}
+		}
+	}
+
+	// Fill descriptions
+	if animePtr.descriptions.count > 0 {
+		descriptionsSlice := unsafe.Slice(animePtr.descriptions.items, animePtr.descriptions.count)
+		for _, descPtr := range descriptionsSlice {
+			if descPtr.description != nil {
+				desc := domain.Description{
+					Language:    domain.Language(descPtr.language),
+					Description: C.GoString(descPtr.description),
+				}
+				anime.AddDescription(desc)
+			}
+		}
+	}
+
+	// Fill tags
+	if animePtr.tags.count > 0 {
+		tagsSlice := unsafe.Slice(animePtr.tags.items, animePtr.tags.count)
+		for _, tagPtr := range tagsSlice {
+			tag := domain.Tag{
+				ID:   uint32(tagPtr.id),
+				Name: C.GoString(tagPtr.name),
+				Type: domain.TagType(tagPtr._type),
+				URL:  C.GoString(tagPtr.url),
+			}
+			anime.AddTag(tag)
+		}
+	}
+
+	// Fill producers
+	if animePtr.producers.count > 0 {
+		producersSlice := unsafe.Slice(animePtr.producers.items, animePtr.producers.count)
+		for _, producerPtr := range producersSlice {
+			producer := domain.Producer{
+				ID:   uint32(producerPtr.id),
+				Name: C.GoString(producerPtr.name),
+				Type: C.GoString(producerPtr._type),
+				URL:  C.GoString(producerPtr.url),
+			}
+			anime.AddProducer(producer)
+		}
+	}
+
+	// Fill licensors
+	if animePtr.licensors.count > 0 {
+		licensorsSlice := unsafe.Slice(animePtr.licensors.items, animePtr.licensors.count)
+		for _, licensorPtr := range licensorsSlice {
+			licensor := domain.Licensor{
+				ID:   uint32(licensorPtr.id),
+				Name: C.GoString(licensorPtr.name),
+				Type: C.GoString(licensorPtr._type),
+				URL:  C.GoString(licensorPtr.url),
+			}
+			anime.AddLicensor(licensor)
+		}
+	}
+
+	// Fill studios
+	if animePtr.studios.count > 0 {
+		studiosSlice := unsafe.Slice(animePtr.studios.items, animePtr.studios.count)
+		for _, studioPtr := range studiosSlice {
+			studio := domain.Studio{
+				ID:   uint32(studioPtr.id),
+				Name: C.GoString(studioPtr.name),
+				URL:  C.GoString(studioPtr.url),
+			}
+			anime.AddStudio(studio)
+		}
+	}
+
 	// now it's handled by the go GC
 	// so we may free it
 	C.free_anime(&animePtr)
