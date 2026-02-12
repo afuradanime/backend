@@ -86,7 +86,7 @@ func (r *AnimeRepository) FetchAnimeFromQuery(name string, pageNumber, pageSize 
 	for i := 0; i < int(count); i++ {
 		a := &animeSlice[i]
 
-		anime, err := r.animeMapper.CtoGo(unsafe.Pointer(a))
+		anime, err := r.animeMapper.CToGoPartial(unsafe.Pointer(a))
 
 		if err != nil {
 			C.free_partial_anime_array(animeArray, count)
@@ -119,7 +119,7 @@ func (r *AnimeRepository) FetchAnimeThisSeason() ([]*domain.Anime, error) {
 	for i := 0; i < int(count); i++ {
 		a := &animeSlice[i]
 
-		anime, err := r.animeMapper.CtoGo(unsafe.Pointer(a))
+		anime, err := r.animeMapper.CToGoPartial(unsafe.Pointer(a))
 
 		if err != nil {
 			C.free_partial_anime_array(animeArray, count)

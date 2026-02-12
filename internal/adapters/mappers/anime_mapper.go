@@ -55,6 +55,7 @@ func (m *AnimeMapper) CtoGo(animePtr unsafe.Pointer) (*domain.Anime, error) {
 	}
 
 	// Fill synonyms
+	// Check if synonyms count is null first
 	if cAnime.synonyms.count > 0 {
 		synonymsSlice := unsafe.Slice(cAnime.synonyms.items, cAnime.synonyms.count)
 		for _, synonymPtr := range synonymsSlice {
@@ -131,6 +132,39 @@ func (m *AnimeMapper) CtoGo(animePtr unsafe.Pointer) (*domain.Anime, error) {
 			}
 			anime.AddStudio(studio)
 		}
+	}
+
+	return anime, nil
+}
+
+func (m *AnimeMapper) CToGoPartial(animePtr unsafe.Pointer) (*domain.Anime, error) {
+	cAnime := (*C.partial_anime_t)(animePtr)
+
+	anime, err := domain.NewAnime(
+		uint32(cAnime.id),
+		C.GoString(cAnime.url),
+		C.GoString(cAnime.title),
+		domain.AnimeType(cAnime._type),
+		C.GoString(cAnime.source),
+		uint32(cAnime.episodes),
+		domain.AnimeStatus(cAnime.status),
+		bool(cAnime.airing),
+		C.GoString(cAnime.duration),
+		C.GoString(cAnime.start_date),
+		C.GoString(cAnime.end_date),
+		domain.SeasonType(cAnime.season.season),
+		uint16(cAnime.season.year),
+		C.GoString(cAnime.broadcast.day),
+		C.GoString(cAnime.broadcast.time),
+		C.GoString(cAnime.broadcast.timezone),
+		C.GoString(cAnime.image_url),
+		C.GoString(cAnime.small_image_url),
+		C.GoString(cAnime.large_image_url),
+		C.GoString(cAnime.trailer_embed_url),
+	)
+
+	if err != nil {
+		return nil, err
 	}
 
 	return anime, nil
