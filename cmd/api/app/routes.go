@@ -26,6 +26,7 @@ func (a *Application) BootstrapUserModule() chi.Router {
 
 	r := chi.NewRouter()
 	r.Get("/{id}", userController.GetUserByID)
+	r.Put("/{id}", userController.UpdateUserInfo)
 
 	return r
 }

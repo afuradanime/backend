@@ -22,3 +22,7 @@ func (s *UserService) GetUserByID(ctx context.Context, id string) (*domain.User,
 func (s *UserService) RegisterUser(ctx context.Context, user *domain.User) error {
 	return s.userRepository.CreateUser(ctx, user)
 }
+
+func (s *UserService) UpdatePersonalInfo(ctx context.Context, id string, email *string, username *string, location *string, pronouns *string, socials *[]string) error {
+	return s.userRepository.UpdatePersonalInfo(ctx, id, email, username, location, pronouns, socials)
+}

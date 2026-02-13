@@ -10,3 +10,6 @@ Um *Backend* desenvolvido em [Go](https://go.dev/), responsável por disponibili
 
 ## Como correr o backend
 `go run .\cmd\api\main.go`
+
+## Documentação da API
+[Docs](./_docs/api.http)

@@ -1,0 +1,21 @@
+### Get user by ID
+GET http://localhost:6969/users/1
+Accept: application/json
+
+
+### Update user
+PUT http://localhost:6969/users/1
+Content-Type: application/json
+
+{
+  "username": "NewName"
+}
+
+### Update user with more fields
+PUT http://localhost:6969/users/1
+Content-Type: application/json
+
+{
+    "pronouns": "he/him",
+    "location": "Afurada"
+}
