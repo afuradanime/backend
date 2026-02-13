@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"time"
+
+	"github.com/afuradanime/backend/internal/core/domain/value"
+)
 
 // TODO: Deviamos por isto num helper.go? depois ve como queres fazer isso
 func ParseISODate(s *string) *time.Time {
@@ -24,48 +28,49 @@ type Anime struct {
 	Title string
 
 	Synonyms     []string
-	Descriptions []Description
+	Descriptions []value.Description
 
-	Type     AnimeType
+	Type     value.AnimeType
 	Source   string
 	Episodes uint32
-	Status   AnimeStatus
+	Status   value.AnimeStatus
 	Airing   bool
 	Duration string // "24 min per ep"
 
 	StartDate *time.Time
 	EndDate   *time.Time
 
-	Season    Season
-	Broadcast Broadcast
+	Season    value.Season
+	Broadcast value.Broadcast
 
 	ImageURL        string
 	SmallImageURL   string
 	LargeImageURL   string
 	TrailerEmbedURL string
 
-	Tags      []Tag
-	Producers []Producer
-	Licensors []Licensor
-	Studios   []Studio
+	Tags      []value.Tag
+	Producers []value.Producer
+	Licensors []value.Licensor
+	Studios   []value.Studio
 }
 
-/**
+/*
+*
 Make a partial anime. Full anime fields are not filled in rn
 */
 func NewAnime(
 	id uint32,
 	url string,
 	title string,
-	atype AnimeType,
+	atype value.AnimeType,
 	source string,
 	episodes uint32,
-	status AnimeStatus,
+	status value.AnimeStatus,
 	airing bool,
 	duration string,
 	startDateISO string,
 	endDateISO string,
-	seasonType SeasonType,
+	seasonType value.SeasonType,
 	seasonYear uint16,
 	broadcastDay string,
 	broadcastTime string,
@@ -93,12 +98,12 @@ func NewAnime(
 		StartDate: startDate,
 		EndDate:   endDate,
 
-		Season: Season{
+		Season: value.Season{
 			Season: seasonType,
 			Year:   seasonYear,
 		},
 
-		Broadcast: Broadcast{
+		Broadcast: value.Broadcast{
 			Day:      broadcastDay,
 			Time:     broadcastTime,
 			Timezone: broadcastTimezone,
@@ -111,11 +116,11 @@ func NewAnime(
 
 		// Full anime only fields initialized but empty
 		Synonyms:     []string{},
-		Descriptions: []Description{},
-		Tags:         []Tag{},
-		Producers:    []Producer{},
-		Licensors:    []Licensor{},
-		Studios:      []Studio{},
+		Descriptions: []value.Description{},
+		Tags:         []value.Tag{},
+		Producers:    []value.Producer{},
+		Licensors:    []value.Licensor{},
+		Studios:      []value.Studio{},
 	}
 
 	return anime, nil
@@ -124,7 +129,7 @@ func NewAnime(
 // Builder methods for the full anime fields.
 // We can use these to fill in the full anime fields after we create the partial anime with the NewAnime constructor
 // Perhaps we should have methods to add as list
-func (anime *Anime) AddDescription(desc Description) {
+func (anime *Anime) AddDescription(desc value.Description) {
 	anime.Descriptions = append(anime.Descriptions, desc)
 }
 
@@ -132,18 +137,18 @@ func (anime *Anime) AddSynonym(synonym string) {
 	anime.Synonyms = append(anime.Synonyms, synonym)
 }
 
-func (anime *Anime) AddTag(tag Tag) {
+func (anime *Anime) AddTag(tag value.Tag) {
 	anime.Tags = append(anime.Tags, tag)
 }
 
-func (anime *Anime) AddProducer(producer Producer) {
+func (anime *Anime) AddProducer(producer value.Producer) {
 	anime.Producers = append(anime.Producers, producer)
 }
 
-func (anime *Anime) AddLicensor(licensor Licensor) {
+func (anime *Anime) AddLicensor(licensor value.Licensor) {
 	anime.Licensors = append(anime.Licensors, licensor)
 }
 
-func (anime *Anime) AddStudio(studio Studio) {
+func (anime *Anime) AddStudio(studio value.Studio) {
 	anime.Studios = append(anime.Studios, studio)
 }

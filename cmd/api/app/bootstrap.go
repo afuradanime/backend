@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/afuradanime/backend/internal/core/domain"
+	"github.com/afuradanime/backend/internal/core/domain/value"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -29,6 +30,9 @@ func BootstrapUsers(ctx context.Context, userCollection *mongo.Collection) {
 		"https://github.com/Rui-San",
 	})
 
+	userKray.AddRole(value.UserRoleModerator)
+	userKray.AddRole(value.UserRoleAdmin)
+
 	userTaiko, err := domain.NewUser("2", "taiko", "taiko@afurada.anime")
 	if err != nil {
 		panic(err)
@@ -39,6 +43,9 @@ func BootstrapUsers(ctx context.Context, userCollection *mongo.Collection) {
 		"https://x.com/Sagiri719",
 		"https://github.com/Sagiri721",
 	})
+
+	userTaiko.AddRole(value.UserRoleModerator)
+	userTaiko.AddRole(value.UserRoleAdmin)
 
 	_, err = userCollection.InsertMany(
 		ctx,

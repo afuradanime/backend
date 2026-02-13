@@ -1,6 +1,8 @@
 package domain
 
 import (
+	"log"
+	"slices"
 	"time"
 
 	value "github.com/afuradanime/backend/internal/core/domain/value"
@@ -20,9 +22,10 @@ type User struct {
 	Pronouns string
 	Socials  []string
 
-	// Authentication
+	// Authentication / Authorization
 	Provider   string
 	ProviderID string
+	Roles      []value.UserRole
 
 	CreatedAt time.Time
 	LastLogin time.Time
@@ -45,6 +48,7 @@ func NewUser(id string, username string, email string) (*User, error) {
 		ID:       id,
 		Username: *newUsername,
 		Email:    *newEmail,
+		Roles:    []value.UserRole{value.UserRoleUser},
 	}, nil
 }
 
@@ -70,4 +74,28 @@ func (u *User) UpdatePronouns(pronouns string) {
 
 func (u *User) UpdateSocials(socials []string) {
 	u.Socials = socials
+}
+
+func (u *User) AddRole(role value.UserRole) {
+
+	if slices.Contains(u.Roles, role) {
+		log.Printf("User %s already has role %d\n", u.Username, role)
+		return
+	}
+
+	u.Roles = append(u.Roles, role)
+}
+
+func (u *User) RevokeRole(role value.UserRole) {
+
+	if !slices.Contains(u.Roles, role) {
+		log.Printf("User %s does not have role %d\n", u.Username, role)
+		return
+	}
+
+	u.Roles = slices.Delete(u.Roles, slices.Index(u.Roles, role), slices.Index(u.Roles, role)+1)
+}
+
+func (u *User) HasRole(role value.UserRole) bool {
+	return slices.Contains(u.Roles, role)
 }

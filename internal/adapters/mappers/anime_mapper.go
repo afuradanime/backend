@@ -14,6 +14,7 @@ import (
 	"unsafe"
 
 	"github.com/afuradanime/backend/internal/core/domain"
+	"github.com/afuradanime/backend/internal/core/domain/value"
 )
 
 type AnimeMapper struct{}
@@ -31,15 +32,15 @@ func (m *AnimeMapper) CtoGo(animePtr unsafe.Pointer) (*domain.Anime, error) {
 		uint32(cAnime.id),
 		C.GoString(cAnime.url),
 		C.GoString(cAnime.title),
-		domain.AnimeType(cAnime._type),
+		value.AnimeType(cAnime._type),
 		C.GoString(cAnime.source),
 		uint32(cAnime.episodes),
-		domain.AnimeStatus(cAnime.status),
+		value.AnimeStatus(cAnime.status),
 		bool(cAnime.airing),
 		C.GoString(cAnime.duration),
 		C.GoString(cAnime.start_date),
 		C.GoString(cAnime.end_date),
-		domain.SeasonType(cAnime.season.season),
+		value.SeasonType(cAnime.season.season),
 		uint16(cAnime.season.year),
 		C.GoString(cAnime.broadcast.day),
 		C.GoString(cAnime.broadcast.time),
@@ -70,8 +71,8 @@ func (m *AnimeMapper) CtoGo(animePtr unsafe.Pointer) (*domain.Anime, error) {
 		descriptionsSlice := unsafe.Slice(cAnime.descriptions.items, cAnime.descriptions.count)
 		for _, descPtr := range descriptionsSlice {
 			if descPtr.description != nil {
-				desc := domain.Description{
-					Language:    domain.Language(descPtr.language),
+				desc := value.Description{
+					Language:    value.Language(descPtr.language),
 					Description: C.GoString(descPtr.description),
 				}
 				anime.AddDescription(desc)
@@ -83,10 +84,10 @@ func (m *AnimeMapper) CtoGo(animePtr unsafe.Pointer) (*domain.Anime, error) {
 	if cAnime.tags.count > 0 {
 		tagsSlice := unsafe.Slice(cAnime.tags.items, cAnime.tags.count)
 		for _, tagPtr := range tagsSlice {
-			tag := domain.Tag{
+			tag := value.Tag{
 				ID:   uint32(tagPtr.id),
 				Name: C.GoString(tagPtr.name),
-				Type: domain.TagType(tagPtr._type),
+				Type: value.TagType(tagPtr._type),
 				URL:  C.GoString(tagPtr.url),
 			}
 			anime.AddTag(tag)
@@ -97,7 +98,7 @@ func (m *AnimeMapper) CtoGo(animePtr unsafe.Pointer) (*domain.Anime, error) {
 	if cAnime.producers.count > 0 {
 		producersSlice := unsafe.Slice(cAnime.producers.items, cAnime.producers.count)
 		for _, producerPtr := range producersSlice {
-			producer := domain.Producer{
+			producer := value.Producer{
 				ID:   uint32(producerPtr.id),
 				Name: C.GoString(producerPtr.name),
 				Type: C.GoString(producerPtr._type),
@@ -111,7 +112,7 @@ func (m *AnimeMapper) CtoGo(animePtr unsafe.Pointer) (*domain.Anime, error) {
 	if cAnime.licensors.count > 0 {
 		licensorsSlice := unsafe.Slice(cAnime.licensors.items, cAnime.licensors.count)
 		for _, licensorPtr := range licensorsSlice {
-			licensor := domain.Licensor{
+			licensor := value.Licensor{
 				ID:   uint32(licensorPtr.id),
 				Name: C.GoString(licensorPtr.name),
 				Type: C.GoString(licensorPtr._type),
@@ -125,7 +126,7 @@ func (m *AnimeMapper) CtoGo(animePtr unsafe.Pointer) (*domain.Anime, error) {
 	if cAnime.studios.count > 0 {
 		studiosSlice := unsafe.Slice(cAnime.studios.items, cAnime.studios.count)
 		for _, studioPtr := range studiosSlice {
-			studio := domain.Studio{
+			studio := value.Studio{
 				ID:   uint32(studioPtr.id),
 				Name: C.GoString(studioPtr.name),
 				URL:  C.GoString(studioPtr.url),
@@ -144,15 +145,15 @@ func (m *AnimeMapper) CToGoPartial(animePtr unsafe.Pointer) (*domain.Anime, erro
 		uint32(cAnime.id),
 		C.GoString(cAnime.url),
 		C.GoString(cAnime.title),
-		domain.AnimeType(cAnime._type),
+		value.AnimeType(cAnime._type),
 		C.GoString(cAnime.source),
 		uint32(cAnime.episodes),
-		domain.AnimeStatus(cAnime.status),
+		value.AnimeStatus(cAnime.status),
 		bool(cAnime.airing),
 		C.GoString(cAnime.duration),
 		C.GoString(cAnime.start_date),
 		C.GoString(cAnime.end_date),
-		domain.SeasonType(cAnime.season.season),
+		value.SeasonType(cAnime.season.season),
 		uint16(cAnime.season.year),
 		C.GoString(cAnime.broadcast.day),
 		C.GoString(cAnime.broadcast.time),

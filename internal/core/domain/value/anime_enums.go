@@ -1,4 +1,4 @@
-package domain
+package value
 
 type AnimeType uint8
 
