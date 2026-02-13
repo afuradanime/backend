@@ -16,6 +16,9 @@ func (a *Application) InitRoutes(r *chi.Mux) {
 	r.Mount("/anime", a.BootstrapAnimeModule())
 	log.Println("[Routing] Anime routes initialized...")
 
+	r.Mount("/friends", a.BootstrapFriendsModule())
+	log.Println("[Routing] Friendship routes initialized...")
+
 	log.Println("[Routing] All routes initialized successfully!")
 }
 
@@ -40,6 +43,22 @@ func (a *Application) BootstrapAnimeModule() chi.Router {
 	r.Get("/{id}", animeController.GetAnimeByID)
 	r.Get("/search", animeController.SearchAnime)
 	r.Get("/seasonal", animeController.GetAnimeThisSeason)
+
+	return r
+}
+
+func (a *Application) BootstrapFriendsModule() chi.Router {
+	friendshipRepo := repositories.NewFriendshipRepository(a.Mongo)
+	userRepo := repositories.NewUserRepository(a.Mongo)
+	friendshipService := services.NewFriendshipService(userRepo, friendshipRepo)
+	friendshipController := controllers.NewFriendshipController(friendshipService)
+
+	r := chi.NewRouter()
+	r.Put("/send/{initiator}/{receiver}", friendshipController.SendFriendRequest)
+	r.Put("/accept/{initiator}/{receiver}", friendshipController.AcceptFriendRequest)
+	r.Put("/decline/{initiator}/{receiver}", friendshipController.DeclineFriendRequest)
+	r.Put("/block/{initiator}/{receiver}", friendshipController.BlockUser)
+	r.Get("/{userID}", friendshipController.ListFriends)
 
 	return r
 }

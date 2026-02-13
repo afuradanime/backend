@@ -20,6 +20,7 @@ func (s *UserService) GetUserByID(ctx context.Context, id string) (*domain.User,
 }
 
 func (s *UserService) RegisterUser(ctx context.Context, user *domain.User) error {
+	// TODO: Check if user with same email or username already exists before creating a new one
 	return s.userRepository.CreateUser(ctx, user)
 }
 

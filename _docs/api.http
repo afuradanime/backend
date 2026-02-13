@@ -2,8 +2,7 @@
 GET http://localhost:6969/users/1
 Accept: application/json
 
-
-### Update user
+### Update user - only username
 PUT http://localhost:6969/users/1
 Content-Type: application/json
 
@@ -11,15 +10,43 @@ Content-Type: application/json
   "username": "NewName"
 }
 
-### Update user with more fields
+### Update user - multiple fields
 PUT http://localhost:6969/users/1
 Content-Type: application/json
 
 {
-    "pronouns": "he/him",
-    "location": "Afurada",
-    "email": "newemail@afurada.anime",
-    "socials": [
-        "https://twitter.com/newname"
-    ]
+  "pronouns": "he/him",
+  "location": "Afurada",
+  "email": "newemail@afurada.anime",
+  "socials": [
+    "https://twitter.com/newname"
+  ]
 }
+
+
+# Note: Currently using query parameters for initiator/receiver.
+# In the future, initiator should come from auth token.
+
+### Send Friend Request
+PUT http://localhost:6969/friends/send/1/2
+Content-Type: application/json
+
+### Accept Friend Request
+PUT http://localhost:6969/friends/accept/1/2
+Content-Type: application/json
+
+### Decline Friend Request
+PUT http://localhost:6969/friends/decline/1/2
+Content-Type: application/json
+
+### Block User
+PUT http://localhost:6969/friends/block/1/2
+Content-Type: application/json
+
+### List Friends
+GET http://localhost:6969/friends/1
+Accept: application/json
+
+### List Friends Reverse
+GET http://localhost:6969/friends/2
+Accept: application/json

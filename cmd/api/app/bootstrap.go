@@ -15,6 +15,9 @@ func (a *Application) Bootstrap() {
 
 	userCollection := a.Mongo.Collection("users")
 	BootstrapUsers(context.Background(), userCollection)
+
+	friendshipCollection := a.Mongo.Collection("friendships")
+	BootstrapFriendships(context.Background(), friendshipCollection)
 }
 
 func BootstrapUsers(ctx context.Context, userCollection *mongo.Collection) {
@@ -55,6 +58,17 @@ func BootstrapUsers(ctx context.Context, userCollection *mongo.Collection) {
 		},
 	)
 
+	if err != nil {
+		panic(err)
+	}
+}
+
+func BootstrapFriendships(ctx context.Context, friendshipCollection *mongo.Collection) {
+
+	friendship := domain.NewFriendRequest("1", "2")
+	friendship.Accept()
+
+	_, err := friendshipCollection.InsertOne(ctx, friendship)
 	if err != nil {
 		panic(err)
 	}
