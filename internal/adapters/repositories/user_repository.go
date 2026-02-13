@@ -40,48 +40,23 @@ func (r *UserRepository) CreateUser(ctx context.Context, user *domain.User) erro
 func (r *UserRepository) UpdatePersonalInfo(
 	ctx context.Context,
 	id string,
-	email *string,
-	username *string,
-	location *string,
-	pronouns *string,
-	socials *[]string,
+	user *domain.User,
 ) error {
 
-	setFields := bson.M{}
+	_, err := r.collection.UpdateOne(
+		ctx,
+		bson.M{"id": id},
+		bson.M{"$set": bson.M{
+			"email":    user.Email,
+			"username": user.Username,
+			"location": user.Location,
+			"pronouns": user.Pronouns,
+			"socials":  user.Socials,
+		}},
+	)
 
-	if email != nil {
-		setFields["email"] = *email
-	}
-
-	if username != nil {
-		setFields["username"] = *username
-	}
-
-	if location != nil {
-		setFields["location"] = *location
-	}
-
-	if pronouns != nil {
-		setFields["pronouns"] = *pronouns
-	}
-
-	if socials != nil {
-		setFields["socials"] = *socials
-	}
-
-	if len(setFields) == 0 {
-		return nil // nothing to update
-	}
-
-	update := bson.M{"$set": setFields}
-
-	result, err := r.collection.UpdateOne(ctx, bson.M{"id": id}, update)
 	if err != nil {
 		return err
-	}
-
-	if result.MatchedCount == 0 {
-		return errors.New("user not found")
 	}
 
 	return nil

@@ -24,5 +24,38 @@ func (s *UserService) RegisterUser(ctx context.Context, user *domain.User) error
 }
 
 func (s *UserService) UpdatePersonalInfo(ctx context.Context, id string, email *string, username *string, location *string, pronouns *string, socials *[]string) error {
-	return s.userRepository.UpdatePersonalInfo(ctx, id, email, username, location, pronouns, socials)
+
+	user, err := s.GetUserByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// Update fields if new values are provided
+	if email != nil {
+		err := user.UpdateEmail(*email)
+		if err != nil {
+			return err
+		}
+	}
+
+	if username != nil {
+		err := user.UpdateUsername(*username)
+		if err != nil {
+			return err
+		}
+	}
+
+	if location != nil {
+		user.UpdateLocation(*location)
+	}
+
+	if pronouns != nil {
+		user.UpdatePronouns(*pronouns)
+	}
+
+	if socials != nil {
+		user.UpdateSocials(*socials)
+	}
+
+	return s.userRepository.UpdatePersonalInfo(ctx, id, user)
 }

@@ -52,6 +52,24 @@ func NewUser(id string, username string, email string) (*User, error) {
 	}, nil
 }
 
+func (u *User) UpdateEmail(email string) error {
+	newEmail, err := value.NewEmail(email)
+	if err != nil {
+		return err
+	}
+	u.Email = *newEmail
+	return nil
+}
+
+func (u *User) UpdateUsername(username string) error {
+	newUsername, err := value.NewTinyStr(username)
+	if err != nil {
+		return err
+	}
+	u.Username = *newUsername
+	return nil
+}
+
 func (u *User) UpdateLastLogin() {
 	u.LastLogin = time.Now()
 }

@@ -17,5 +17,9 @@ Content-Type: application/json
 
 {
     "pronouns": "he/him",
-    "location": "Afurada"
+    "location": "Afurada",
+    "email": "newemail@afurada.anime",
+    "socials": [
+        "https://twitter.com/newname"
+    ]
 }

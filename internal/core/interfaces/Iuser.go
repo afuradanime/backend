@@ -15,5 +15,5 @@ type UserService interface {
 type UserRepository interface {
 	GetUserById(ctx context.Context, id string) (*domain.User, error)
 	CreateUser(ctx context.Context, user *domain.User) error // same as RegisterUser
-	UpdatePersonalInfo(ctx context.Context, id string, email *string, username *string, location *string, pronouns *string, socials *[]string) error
+	UpdatePersonalInfo(ctx context.Context, id string, user *domain.User) error
 }
