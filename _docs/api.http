@@ -2,7 +2,7 @@
 GET http://localhost:6969/users/1
 Accept: application/json
 
-### Update user - only username
+### Update user
 PUT http://localhost:6969/users/1
 Content-Type: application/json
 
@@ -10,7 +10,7 @@ Content-Type: application/json
   "username": "NewName"
 }
 
-### Update user - multiple fields
+### Update user with more fields
 PUT http://localhost:6969/users/1
 Content-Type: application/json
 
@@ -49,4 +49,8 @@ Accept: application/json
 
 ### List Friends Reverse
 GET http://localhost:6969/friends/2
+Accept: application/json
+
+### List Pending Friend Requests
+GET http://localhost:6969/friends/pending/1
 Accept: application/json

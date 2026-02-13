@@ -13,6 +13,7 @@ type FriendshipService interface {
 	DeclineFriendRequest(ctx context.Context, initiator string, receiver string) error
 	BlockUser(ctx context.Context, initiator string, receiver string) error
 	GetFriendList(ctx context.Context, userId string) ([]domain.User, error)
+	GetPendingFriendRequests(ctx context.Context, userId string) ([]domain.User, error)
 }
 
 type FriendshipRepository interface {
@@ -20,4 +21,5 @@ type FriendshipRepository interface {
 	GetFriendship(ctx context.Context, initiator string, receiver string) (*domain.Friendship, error)
 	UpdateFriendshipStatus(ctx context.Context, initiator string, receiver string, status value.FriendshipStatus) error
 	GetFriends(ctx context.Context, userId string) ([]string, error)
+	GetPendingFriendRequests(ctx context.Context, userId string) ([]string, error)
 }

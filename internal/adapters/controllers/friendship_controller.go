@@ -110,3 +110,24 @@ func (c *FriendshipController) ListFriends(w http.ResponseWriter, r *http.Reques
 		return
 	}
 }
+
+func (c *FriendshipController) ListPendingFriendRequests(w http.ResponseWriter, r *http.Request) {
+
+	targetUser := chi.URLParam(r, "userID")
+	if targetUser == "" {
+		http.Error(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+
+	requests, err := c.friendshipService.GetPendingFriendRequests(r.Context(), targetUser)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(requests); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}

@@ -122,6 +122,10 @@ func (s *FriendshipService) BlockUser(ctx context.Context, initiator string, rec
 		return s.friendshipRepository.CreateFriendship(ctx, friendship)
 	}
 
+	if initiator == receiver {
+		return domain_errors.CannotBlockYourselfError{}
+	}
+
 	return s.friendshipRepository.UpdateFriendshipStatus(ctx, initiator, receiver, value.FriendshipStatusBlocked)
 }
 func (s *FriendshipService) GetFriendList(ctx context.Context, userId string) ([]domain.User, error) {
@@ -144,4 +148,26 @@ func (s *FriendshipService) GetFriendList(ctx context.Context, userId string) ([
 	}
 
 	return friendDetails, nil
+}
+
+func (s *FriendshipService) GetPendingFriendRequests(ctx context.Context, userId string) ([]domain.User, error) {
+	requests, err := s.friendshipRepository.GetPendingFriendRequests(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get request details
+	requestDetails := make([]domain.User, len(requests))
+	for i, requestId := range requests {
+
+		var r *domain.User
+		r, err = s.userRepository.GetUserById(ctx, requestId)
+		if err != nil {
+			return nil, err
+		}
+
+		requestDetails[i] = *r
+	}
+
+	return requestDetails, nil
 }

@@ -48,3 +48,9 @@ type CantOperateOnNonPendingRequestError struct {
 func (e CantOperateOnNonPendingRequestError) Error() string {
 	return "You can only accept or decline pending friend requests"
 }
+
+type CannotBlockYourselfError struct{}
+
+func (e CannotBlockYourselfError) Error() string {
+	return "You cannot block yourself"
+}

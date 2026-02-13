@@ -82,3 +82,29 @@ func (r *FriendshipRepository) GetFriends(ctx context.Context, userId string) ([
 
 	return friendIds, nil
 }
+
+func (r *FriendshipRepository) GetPendingFriendRequests(ctx context.Context, userId string) ([]string, error) {
+
+	// Get friendships where user is receiver and status is pending
+	cursor, err := r.collection.Find(ctx, map[string]interface{}{
+		"receiver": userId,
+		"status":   value.FriendshipStatusPending,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	var friendships []domain.Friendship
+	if err := cursor.All(ctx, &friendships); err != nil {
+		return nil, err
+	}
+
+	// Extract initiator IDs
+	requestIds := make([]string, len(friendships))
+	for i, f := range friendships {
+		requestIds[i] = f.Initiator
+	}
+
+	return requestIds, nil
+}

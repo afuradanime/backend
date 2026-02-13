@@ -59,6 +59,7 @@ func (a *Application) BootstrapFriendsModule() chi.Router {
 	r.Put("/decline/{initiator}/{receiver}", friendshipController.DeclineFriendRequest)
 	r.Put("/block/{initiator}/{receiver}", friendshipController.BlockUser)
 	r.Get("/{userID}", friendshipController.ListFriends)
+	r.Get("/pending/{userID}", friendshipController.ListPendingFriendRequests)
 
 	return r
 }
