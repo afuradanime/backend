@@ -9,18 +9,18 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func InitRoutes(r *chi.Mux) {
-	r.Mount("/users", BootstrapUserModule())
+func (a *Application) InitRoutes(r *chi.Mux) {
+	r.Mount("/users", a.BootstrapUserModule())
 	log.Println("[Routing] User routes initialized...")
 
-	r.Mount("/anime", BootstrapAnimeModule())
+	r.Mount("/anime", a.BootstrapAnimeModule())
 	log.Println("[Routing] Anime routes initialized...")
 
 	log.Println("[Routing] All routes initialized successfully!")
 }
 
-func BootstrapUserModule() chi.Router {
-	userRepo := repositories.NewUserRepository()
+func (a *Application) BootstrapUserModule() chi.Router {
+	userRepo := repositories.NewUserRepository(a.Mongo)
 	userService := services.NewUserService(userRepo)
 	userController := controllers.NewUserController(userService)
 
@@ -30,7 +30,7 @@ func BootstrapUserModule() chi.Router {
 	return r
 }
 
-func BootstrapAnimeModule() chi.Router {
+func (a *Application) BootstrapAnimeModule() chi.Router {
 	animeRepo := repositories.NewAnimeRepository()
 	animeService := services.NewAnimeService(animeRepo)
 	animeController := controllers.NewAnimeController(animeService)

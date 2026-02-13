@@ -8,8 +8,13 @@ import (
 )
 
 type Config struct {
-	Port        string
-	FrontendURL string
+	Port                  string
+	FrontendURL           string
+	AnimeDatabasePath     string
+	MongoConnectionString string
+	MongoUsername         string
+	MongoPassword         string
+	ShouldBootstrap       bool
 }
 
 func Load() *Config {
@@ -19,7 +24,12 @@ func Load() *Config {
 	}
 
 	return &Config{
-		Port:        os.Getenv("PORT"),
-		FrontendURL: os.Getenv("FRONTEND_URL"),
+		Port:                  os.Getenv("PORT"),
+		FrontendURL:           os.Getenv("FRONTEND_URL"),
+		AnimeDatabasePath:     os.Getenv("ANIME_DATABASE_PATH"),
+		MongoConnectionString: os.Getenv("MONGO_CONNECTION_STRING"),
+		MongoUsername:         os.Getenv("MONGO_USERNAME"),
+		MongoPassword:         os.Getenv("MONGO_PASSWORD"),
+		ShouldBootstrap:       os.Getenv("SHOULD_BOOTSTRAP") == "true",
 	}
 }

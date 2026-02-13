@@ -1,13 +1,17 @@
 package interfaces
 
-import "github.com/afuradanime/backend/internal/core/domain"
+import (
+	"context"
+
+	"github.com/afuradanime/backend/internal/core/domain"
+)
 
 type UserService interface {
-	GetUserByID(id int) (*domain.User, error)
-	RegisterUser() error // parameters TBD when auth is added
+	GetUserByID(ctx context.Context, id string) (*domain.User, error)
+	RegisterUser(ctx context.Context, user *domain.User) error
 }
 
 type UserRepository interface {
-	GetUserByID(id int) (*domain.User, error)
-	CreateUser() error // same as RegisterUser
+	GetUserById(ctx context.Context, id string) (*domain.User, error)
+	CreateUser(ctx context.Context, user *domain.User) error // same as RegisterUser
 }

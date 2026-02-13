@@ -1,6 +1,8 @@
 package services
 
 import (
+	"context"
+
 	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/interfaces"
 )
@@ -13,10 +15,10 @@ func NewUserService(repo interfaces.UserRepository) *UserService {
 	return &UserService{userRepository: repo}
 }
 
-func (s *UserService) GetUserByID(id int) (*domain.User, error) {
-	return s.userRepository.GetUserByID(id)
+func (s *UserService) GetUserByID(ctx context.Context, id string) (*domain.User, error) {
+	return s.userRepository.GetUserById(ctx, id)
 }
 
-func (s *UserService) RegisterUser() error {
-	return s.userRepository.CreateUser()
+func (s *UserService) RegisterUser(ctx context.Context, user *domain.User) error {
+	return s.userRepository.CreateUser(ctx, user)
 }

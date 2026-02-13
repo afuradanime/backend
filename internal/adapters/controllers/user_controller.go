@@ -24,7 +24,7 @@ func (uc *UserController) GetUserByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := uc.userService.GetUserByID(id)
+	user, err := uc.userService.GetUserByID(r.Context(), strconv.Itoa(id))
 	if err != nil { // TODO: Proper error handling here, with different status codes!
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
