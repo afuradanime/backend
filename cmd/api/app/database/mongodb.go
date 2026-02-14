@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"log"
+	"strings"
 
 	"github.com/afuradanime/backend/config"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -13,10 +14,13 @@ import (
 func InitMongoDB(Config config.Config) (client *mongo.Client, err error) {
 
 	clientOptions := options.Client().ApplyURI(Config.MongoConnectionString)
-	clientOptions.SetAuth(options.Credential{
-		Username: Config.MongoUsername,
-		Password: Config.MongoPassword,
-	})
+
+	if Config.MongoUsername != "" && Config.MongoPassword != "" && !strings.Contains(Config.MongoConnectionString, "@") {
+		clientOptions.SetAuth(options.Credential{
+			Username: Config.MongoUsername,
+			Password: Config.MongoPassword,
+		})
+	}
 
 	client, err = mongo.Connect(context.Background(), clientOptions)
 	if err != nil {
