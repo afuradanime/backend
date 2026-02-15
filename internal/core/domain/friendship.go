@@ -1,6 +1,10 @@
 package domain
 
-import "github.com/afuradanime/backend/internal/core/domain/value"
+import (
+	"time"
+
+	"github.com/afuradanime/backend/internal/core/domain/value"
+)
 
 type Friendship struct {
 	Initiator string
@@ -19,10 +23,14 @@ func NewFriendRequest(initiator string, receiver string) *Friendship {
 }
 
 func NewBlockedUser(initiator string, receiver string) *Friendship {
+
+	currentTime := time.Now().Format(time.RFC3339)
+
 	return &Friendship{
 		Initiator: initiator,
 		Receiver:  receiver,
 		Status:    value.FriendshipStatusBlocked,
+		CreatedAt: currentTime,
 	}
 }
 

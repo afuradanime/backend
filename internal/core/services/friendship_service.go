@@ -42,6 +42,12 @@ func (s *FriendshipService) SendFriendRequest(ctx context.Context, initiator str
 				Initiator: initiator,
 				Receiver:  receiver,
 			}
+		} else if f.GetStatus() == value.FriendshipStatusDeclined {
+			// If the request was declined, we can allow sending a new friend request
+			// but we delete the old declined request
+			if err := s.friendshipRepository.UpdateFriendshipStatus(ctx, initiator, receiver, value.FriendshipStatusPending); err != nil {
+				return err
+			}
 		}
 	}
 
