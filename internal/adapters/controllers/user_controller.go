@@ -17,6 +17,17 @@ func NewUserController(s interfaces.UserService) *UserController {
 	return &UserController{userService: s}
 }
 
+func (uc *UserController) GetUsers(w http.ResponseWriter, r *http.Request) {
+	users, err := uc.userService.GetUsers(r.Context())
+	if err != nil {
+		http.Error(w, "Failed to retrieve users", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(users)
+}
+
 func (uc *UserController) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {

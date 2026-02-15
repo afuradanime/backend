@@ -15,6 +15,10 @@ func NewUserService(repo interfaces.UserRepository) *UserService {
 	return &UserService{userRepository: repo}
 }
 
+func (s *UserService) GetUsers(ctx context.Context) ([]*domain.User, error) {
+	return s.userRepository.GetUsers(ctx)
+}
+
 func (s *UserService) GetUserByID(ctx context.Context, id string) (*domain.User, error) {
 	return s.userRepository.GetUserById(ctx, id)
 }
