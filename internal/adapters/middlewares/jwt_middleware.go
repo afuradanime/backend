@@ -16,7 +16,7 @@ const (
 	UserRolesKey contextKey = "userRoles"
 )
 
-func JWTMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
+func JWTMiddleware(cfg *config.JWTConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -32,7 +32,7 @@ func JWTMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 				return
 			}
 
-			parsed, err := utils.GetParsedJWTClaims(tokenString)
+			parsed, err := utils.GetParsedJWTClaims(tokenString, cfg.Secret)
 			if err != nil || !parsed.Valid {
 				http.Error(w, "Unauthorized, invalid token", http.StatusUnauthorized)
 				return

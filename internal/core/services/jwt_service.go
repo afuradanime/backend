@@ -30,7 +30,7 @@ func (s *JWTService) GenerateJWT(user domain.User) (string, error) {
 }
 
 func (s *JWTService) ValidateJWT(tokenString string) (*jwt.Token, error) {
-	parsed, err := utils.GetParsedJWTClaims(tokenString)
+	parsed, err := utils.GetParsedJWTClaims(tokenString, s.conf.Secret)
 	if err != nil {
 		return nil, err
 	}

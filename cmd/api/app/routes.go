@@ -23,7 +23,7 @@ func (a *Application) InitRoutes(r *chi.Mux) {
 
 	log.Printf("[Routing] Initializing protected routes...")
 	r.Group(func(r chi.Router) {
-		r.Use(middlewares.JWTMiddleware(a.Config))
+		r.Use(middlewares.JWTMiddleware(a.JWTConfig))
 		r.Mount("/users", a.BootstrapUserModule())
 		log.Println("[Routing] User routes initialized")
 		r.Mount("/friends", a.BootstrapFriendsModule())
