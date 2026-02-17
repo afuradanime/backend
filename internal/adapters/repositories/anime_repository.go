@@ -111,17 +111,26 @@ func (r *AnimeRepository) FetchAnimeFromQuery(name string, pageNumber, pageSize 
 	}, nil
 }
 
-func (r *AnimeRepository) FetchAnimeThisSeason() ([]*domain.Anime, error) {
+func (r *AnimeRepository) FetchAnimeThisSeason(pageNumber, pageSize int) ([]*domain.Anime, utils.Pagination, error) {
 	var count C.uint
 	var animeArray *C.partial_anime_t
+	var totalPages C.uint
+	var page = C.pageable_t{
+		page_number: C.ushort(pageNumber),
+		page_size:   C.ushort(pageSize),
+	}
 
-	rc := C.fetch_anime_this_season(&count, &animeArray)
+	rc := C.fetch_anime_this_season(page, &count, &totalPages, &animeArray)
 	if rc != 0 {
-		return nil, errors.New("Failed to fetch anime for this season")
+		return nil, utils.Pagination{}, errors.New("Failed to fetch anime this season")
 	}
 
 	if count == 0 {
-		return []*domain.Anime{}, nil
+		return []*domain.Anime{}, utils.Pagination{
+			PageNumber: pageNumber,
+			PageSize:   pageSize,
+			TotalPages: int(totalPages),
+		}, nil
 	}
 
 	animeSlice := unsafe.Slice(animeArray, count)
@@ -134,14 +143,18 @@ func (r *AnimeRepository) FetchAnimeThisSeason() ([]*domain.Anime, error) {
 
 		if err != nil {
 			C.free_partial_anime_array(animeArray, count)
-			return nil, err
+			return nil, utils.Pagination{}, err
 		}
 
 		results[i] = anime
 	}
 
 	C.free_partial_anime_array(animeArray, count)
-	return results, nil
+	return results, utils.Pagination{
+		PageNumber: pageNumber,
+		PageSize:   pageSize,
+		TotalPages: int(totalPages),
+	}, nil
 }
 
 func (r *AnimeRepository) FetchStudioByID(studioID uint32, pageNumber, pageSize int) (*value.Studio, []*domain.Anime, utils.Pagination, error) {

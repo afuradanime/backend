@@ -23,8 +23,8 @@ func (s *AnimeService) FetchAnimeFromQuery(name string, pageNumber, pageSize int
 	return s.repo.FetchAnimeFromQuery(name, pageNumber, pageSize)
 }
 
-func (s *AnimeService) FetchAnimeThisSeason() ([]*domain.Anime, error) {
-	return s.repo.FetchAnimeThisSeason()
+func (s *AnimeService) FetchAnimeThisSeason(pageNumber, pageSize int) ([]*domain.Anime, utils.Pagination, error) {
+	return s.repo.FetchAnimeThisSeason(pageNumber, pageSize)
 }
 
 func (s *AnimeService) FetchStudioByID(studioID uint32, pageNumber, pageSize int) (*value.Studio, []*domain.Anime, utils.Pagination, error) {
