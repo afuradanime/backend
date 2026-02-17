@@ -35,7 +35,7 @@ func (uc *UserController) GetUserByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := uc.userService.GetUserByID(r.Context(), strconv.Itoa(id))
+	user, err := uc.userService.GetUserByID(r.Context(), id)
 	if err != nil { // TODO: Proper error handling here, with different status codes!
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -66,7 +66,7 @@ func (uc *UserController) UpdateUserInfo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	err = uc.userService.UpdatePersonalInfo(r.Context(), strconv.Itoa(id), updateData.Email, updateData.Username, updateData.Location, updateData.Pronouns, updateData.Socials)
+	err = uc.userService.UpdatePersonalInfo(r.Context(), id, updateData.Email, updateData.Username, updateData.Location, updateData.Pronouns, updateData.Socials)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

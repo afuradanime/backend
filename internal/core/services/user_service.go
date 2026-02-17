@@ -19,8 +19,12 @@ func (s *UserService) GetUsers(ctx context.Context) ([]*domain.User, error) {
 	return s.userRepository.GetUsers(ctx)
 }
 
-func (s *UserService) GetUserByID(ctx context.Context, id string) (*domain.User, error) {
+func (s *UserService) GetUserByID(ctx context.Context, id int) (*domain.User, error) {
 	return s.userRepository.GetUserById(ctx, id)
+}
+
+func (s *UserService) GetUserByProvider(ctx context.Context, provider string, providerID string) (*domain.User, error) {
+	return s.userRepository.GetUserByProvider(ctx, provider, providerID)
 }
 
 func (s *UserService) RegisterUser(ctx context.Context, user *domain.User) error {
@@ -28,7 +32,7 @@ func (s *UserService) RegisterUser(ctx context.Context, user *domain.User) error
 	return s.userRepository.CreateUser(ctx, user)
 }
 
-func (s *UserService) UpdatePersonalInfo(ctx context.Context, id string, email *string, username *string, location *string, pronouns *string, socials *[]string) error {
+func (s *UserService) UpdatePersonalInfo(ctx context.Context, id int, email *string, username *string, location *string, pronouns *string, socials *[]string) error {
 
 	user, err := s.GetUserByID(ctx, id)
 	if err != nil {
@@ -63,4 +67,8 @@ func (s *UserService) UpdatePersonalInfo(ctx context.Context, id string, email *
 	}
 
 	return s.userRepository.UpdatePersonalInfo(ctx, id, user)
+}
+
+func (s *UserService) UpdateLastLogin(ctx context.Context, id int) error {
+	return s.userRepository.UpdateLastLogin(ctx, id)
 }
