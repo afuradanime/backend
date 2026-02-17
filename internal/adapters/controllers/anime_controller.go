@@ -55,6 +55,12 @@ func (ac *AnimeController) SearchAnime(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if sizeStr := r.URL.Query().Get("pageSize"); sizeStr != "" {
+		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 {
+			pageSize = s
+		}
+	}
+
 	animes, pagination, err := ac.animeService.FetchAnimeFromQuery(query, pageNumber, pageSize)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
