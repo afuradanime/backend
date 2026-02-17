@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/afuradanime/backend/internal/adapters/repositories"
 	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/domain/value"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func (a *Application) Bootstrap() {
@@ -14,16 +14,20 @@ func (a *Application) Bootstrap() {
 	// Nuke EVERYTHING
 	a.Mongo.Drop(context.Background())
 
-	userCollection := a.Mongo.Collection("users")
-	BootstrapUsers(context.Background(), userCollection)
+	// Create repositories
+	userRepo := repositories.NewUserRepository(a.Mongo)
+	friendshipRepo := repositories.NewFriendshipRepository(a.Mongo)
 
-	friendshipCollection := a.Mongo.Collection("friendships")
-	BootstrapFriendships(context.Background(), friendshipCollection)
+	// Bootstrap users and get their auto-generated IDs
+	krayID, taikoID, testID := BootstrapUsers(context.Background(), userRepo)
+
+	// Bootstrap friendships using the actual user IDs
+	BootstrapFriendships(context.Background(), friendshipRepo, krayID, taikoID, testID)
 }
 
-func BootstrapUsers(ctx context.Context, userCollection *mongo.Collection) {
+func BootstrapUsers(ctx context.Context, userRepo *repositories.UserRepository) (krayID, taikoID, testID int) {
 
-	userKray, err := domain.NewUser("1", "KrayRui", "kray@afurada.anime")
+	userKray, err := domain.NewUser("KrayRui", "kray@afurada.anime")
 	if err != nil {
 		panic(err)
 	}
@@ -39,7 +43,14 @@ func BootstrapUsers(ctx context.Context, userCollection *mongo.Collection) {
 
 	userKray.UpdateAvatarURL("/pfps/d7dea5d3e09941f563dabf364b4db31cac63a5f1.png")
 
-	userTaiko, err := domain.NewUser("2", "Sagiri719", "taiko@afurada.anime")
+	// Create user and get auto-generated ID
+	err = userRepo.CreateUser(ctx, userKray)
+	if err != nil {
+		panic(err)
+	}
+	krayID = userKray.ID
+
+	userTaiko, err := domain.NewUser("Sagiri719", "taiko@afurada.anime")
 	if err != nil {
 		panic(err)
 	}
@@ -55,7 +66,14 @@ func BootstrapUsers(ctx context.Context, userCollection *mongo.Collection) {
 
 	userTaiko.UpdateAvatarURL("/pfps/e59084c01caf44df3c240a3c78009d080ea02556.png")
 
-	userTest, err := domain.NewUser("3", "Teste", "teste@mail.teste")
+	// Create user and get auto-generated ID
+	err = userRepo.CreateUser(ctx, userTaiko)
+	if err != nil {
+		panic(err)
+	}
+	taikoID = userTaiko.ID
+
+	userTest, err := domain.NewUser("Teste", "teste@mail.teste")
 	if err != nil {
 		panic(err)
 	}
@@ -67,35 +85,30 @@ func BootstrapUsers(ctx context.Context, userCollection *mongo.Collection) {
 	userTest.UpdateBirthday(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC))
 	userTest.UpdatePronouns("user/teste")
 
-	_, err = userCollection.InsertMany(
-		ctx,
-		[]interface{}{
-			userKray,
-			userTaiko,
-			userTest,
-		},
-	)
-
+	// Create user and get auto-generated ID
+	err = userRepo.CreateUser(ctx, userTest)
 	if err != nil {
 		panic(err)
 	}
+	testID = userTest.ID
+
+	return krayID, taikoID, testID
 }
 
-func BootstrapFriendships(ctx context.Context, friendshipCollection *mongo.Collection) {
+func BootstrapFriendships(ctx context.Context, friendshipRepo *repositories.FriendshipRepository, krayID, taikoID, testID int) {
 
-	friendship := domain.NewFriendRequest("1", "2")
+	friendship := domain.NewFriendRequest(krayID, taikoID)
 	friendship.Accept()
 
-	friendship2 := domain.NewFriendRequest("2", "3")
+	err := friendshipRepo.CreateFriendship(ctx, friendship)
+	if err != nil {
+		panic(err)
+	}
+
+	friendship2 := domain.NewFriendRequest(taikoID, testID)
 	friendship2.Accept()
 
-	_, err := friendshipCollection.InsertMany(
-		ctx,
-		[]interface{}{
-			friendship,
-			friendship2,
-		},
-	)
+	err = friendshipRepo.CreateFriendship(ctx, friendship2)
 	if err != nil {
 		panic(err)
 	}
