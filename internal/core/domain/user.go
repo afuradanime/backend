@@ -9,29 +9,29 @@ import (
 )
 
 type User struct {
-	ID string
+	ID int `json:"ID" bson:"_id"`
 
 	// Identity
-	Email     value.Email
-	Username  value.TinyStr
-	AvatarURL string
+	Email     value.Email   `json:"Email" bson:"email"`
+	Username  value.TinyStr `json:"Username" bson:"username"`
+	AvatarURL string        `json:"AvatarURL" bson:"avatar_url"`
 
 	// Personal Info
-	Location string
-	Birthday time.Time
-	Pronouns string
-	Socials  []string
+	Location string    `json:"Location" bson:"location"`
+	Birthday time.Time `json:"Birthday" bson:"birthday"`
+	Pronouns string    `json:"Pronouns" bson:"pronouns"`
+	Socials  []string  `json:"Socials" bson:"socials"`
 
 	// Authentication / Authorization
-	Provider   string
-	ProviderID string
-	Roles      []value.UserRole
+	Provider   string           `json:"Provider" bson:"provider"`
+	ProviderID string           `json:"ProviderID" bson:"provider_id"`
+	Roles      []value.UserRole `json:"Roles" bson:"roles"`
 
-	CreatedAt time.Time
-	LastLogin time.Time
+	CreatedAt time.Time `json:"CreatedAt" bson:"created_at"`
+	LastLogin time.Time `json:"LastLogin" bson:"last_login"`
 }
 
-func NewUser(id string, username string, email string) (*User, error) {
+func NewUser(username string, email string) (*User, error) {
 	newEmail, err := value.NewEmail(email)
 
 	if err != nil {
@@ -45,10 +45,11 @@ func NewUser(id string, username string, email string) (*User, error) {
 	}
 
 	return &User{
-		ID:       id,
-		Username: *newUsername,
-		Email:    *newEmail,
-		Roles:    []value.UserRole{value.UserRoleUser},
+		// ID will be set by mongo auto-increment
+		Username:  *newUsername,
+		Email:     *newEmail,
+		Roles:     []value.UserRole{value.UserRoleUser},
+		CreatedAt: time.Now(),
 	}, nil
 }
 

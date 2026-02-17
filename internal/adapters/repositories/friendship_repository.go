@@ -5,6 +5,7 @@ import (
 
 	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/domain/value"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -23,9 +24,9 @@ func (r *FriendshipRepository) CreateFriendship(ctx context.Context, friendship 
 	return err
 }
 
-func (r *FriendshipRepository) GetFriendship(ctx context.Context, initiator string, receiver string) (*domain.Friendship, error) {
+func (r *FriendshipRepository) GetFriendship(ctx context.Context, initiator int, receiver int) (*domain.Friendship, error) {
 	var friendship domain.Friendship
-	err := r.collection.FindOne(ctx, map[string]string{
+	err := r.collection.FindOne(ctx, bson.M{
 		"initiator": initiator,
 		"receiver":  receiver,
 	}).Decode(&friendship)
@@ -37,12 +38,12 @@ func (r *FriendshipRepository) GetFriendship(ctx context.Context, initiator stri
 	return &friendship, nil
 }
 
-func (r *FriendshipRepository) UpdateFriendshipStatus(ctx context.Context, initiator string, receiver string, status value.FriendshipStatus) error {
-	_, err := r.collection.UpdateOne(ctx, map[string]string{
+func (r *FriendshipRepository) UpdateFriendshipStatus(ctx context.Context, initiator int, receiver int, status value.FriendshipStatus) error {
+	_, err := r.collection.UpdateOne(ctx, bson.M{
 		"initiator": initiator,
 		"receiver":  receiver,
-	}, map[string]interface{}{
-		"$set": map[string]interface{}{
+	}, bson.M{
+		"$set": bson.M{
 			"status": status,
 		},
 	})
@@ -50,11 +51,11 @@ func (r *FriendshipRepository) UpdateFriendshipStatus(ctx context.Context, initi
 	return err
 }
 
-func (r *FriendshipRepository) GetFriends(ctx context.Context, userId string) ([]string, error) {
+func (r *FriendshipRepository) GetFriends(ctx context.Context, userId int) ([]int, error) {
 
 	// Get friendships where user is initiator or receiver and status is accepted
-	cursor, err := r.collection.Find(ctx, map[string]interface{}{
-		"$or": []map[string]string{
+	cursor, err := r.collection.Find(ctx, bson.M{
+		"$or": []bson.M{
 			{"initiator": userId},
 			{"receiver": userId},
 		},
@@ -71,7 +72,7 @@ func (r *FriendshipRepository) GetFriends(ctx context.Context, userId string) ([
 	}
 
 	// Extract friend IDs
-	friendIds := make([]string, len(friendships))
+	friendIds := make([]int, len(friendships))
 	for i, f := range friendships {
 		if f.Initiator == userId {
 			friendIds[i] = f.Receiver
@@ -83,10 +84,10 @@ func (r *FriendshipRepository) GetFriends(ctx context.Context, userId string) ([
 	return friendIds, nil
 }
 
-func (r *FriendshipRepository) GetPendingFriendRequests(ctx context.Context, userId string) ([]string, error) {
+func (r *FriendshipRepository) GetPendingFriendRequests(ctx context.Context, userId int) ([]int, error) {
 
 	// Get friendships where user is receiver and status is pending
-	cursor, err := r.collection.Find(ctx, map[string]interface{}{
+	cursor, err := r.collection.Find(ctx, bson.M{
 		"receiver": userId,
 		"status":   value.FriendshipStatusPending,
 	})
@@ -101,7 +102,7 @@ func (r *FriendshipRepository) GetPendingFriendRequests(ctx context.Context, use
 	}
 
 	// Extract initiator IDs
-	requestIds := make([]string, len(friendships))
+	requestIds := make([]int, len(friendships))
 	for i, f := range friendships {
 		requestIds[i] = f.Initiator
 	}

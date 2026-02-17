@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/afuradanime/backend/internal/core/interfaces"
 	"github.com/go-chi/chi/v5"
@@ -19,12 +20,22 @@ func NewFriendshipController(friendshipService interfaces.FriendshipService) *Fr
 }
 
 // helper to get initiator and receiver safely
-func getInitiatorAndReceiver(r *http.Request) (string, string, error) {
-	initiator := chi.URLParam(r, "initiator")
-	receiver := chi.URLParam(r, "receiver")
+func getInitiatorAndReceiver(r *http.Request) (int, int, error) {
+	initiatorStr := chi.URLParam(r, "initiator")
+	receiverStr := chi.URLParam(r, "receiver")
 
-	if initiator == "" || receiver == "" {
-		return "", "", http.ErrMissingFile
+	if initiatorStr == "" || receiverStr == "" {
+		return 0, 0, http.ErrMissingFile
+	}
+
+	initiator, err := strconv.Atoi(initiatorStr)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	receiver, err := strconv.Atoi(receiverStr)
+	if err != nil {
+		return 0, 0, err
 	}
 
 	return initiator, receiver, nil
@@ -92,9 +103,15 @@ func (c *FriendshipController) BlockUser(w http.ResponseWriter, r *http.Request)
 
 func (c *FriendshipController) ListFriends(w http.ResponseWriter, r *http.Request) {
 
-	targetUser := chi.URLParam(r, "userID")
-	if targetUser == "" {
+	targetUserStr := chi.URLParam(r, "userID")
+	if targetUserStr == "" {
 		http.Error(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+
+	targetUser, err := strconv.Atoi(targetUserStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
@@ -113,9 +130,15 @@ func (c *FriendshipController) ListFriends(w http.ResponseWriter, r *http.Reques
 
 func (c *FriendshipController) ListPendingFriendRequests(w http.ResponseWriter, r *http.Request) {
 
-	targetUser := chi.URLParam(r, "userID")
-	if targetUser == "" {
+	targetUserStr := chi.URLParam(r, "userID")
+	if targetUserStr == "" {
 		http.Error(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+
+	targetUser, err := strconv.Atoi(targetUserStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 

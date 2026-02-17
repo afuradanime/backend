@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/domain/value"
@@ -21,7 +22,7 @@ func NewFriendshipService(userRepo interfaces.UserRepository, friendshipRepo int
 	}
 }
 
-func (s *FriendshipService) SendFriendRequest(ctx context.Context, initiator string, receiver string) error {
+func (s *FriendshipService) SendFriendRequest(ctx context.Context, initiator int, receiver int) error {
 
 	// Check if relationship already exists
 	f, err := s.friendshipRepository.GetFriendship(ctx, initiator, receiver)
@@ -29,18 +30,18 @@ func (s *FriendshipService) SendFriendRequest(ctx context.Context, initiator str
 		// Check if blocked or already friends
 		if f.GetStatus() == value.FriendshipStatusBlocked {
 			return domain_errors.UserBlockedError{
-				Initiator: initiator,
-				Receiver:  receiver,
+				Initiator: strconv.Itoa(initiator),
+				Receiver:  strconv.Itoa(receiver),
 			}
 		} else if f.GetStatus() == value.FriendshipStatusAccepted {
 			return domain_errors.AlreadyFriendsError{
-				Initiator: initiator,
-				Receiver:  receiver,
+				Initiator: strconv.Itoa(initiator),
+				Receiver:  strconv.Itoa(receiver),
 			}
 		} else if f.GetStatus() == value.FriendshipStatusPending {
 			return domain_errors.FriendRequestAlreadySentError{
-				Initiator: initiator,
-				Receiver:  receiver,
+				Initiator: strconv.Itoa(initiator),
+				Receiver:  strconv.Itoa(receiver),
 			}
 		} else if f.GetStatus() == value.FriendshipStatusDeclined {
 			// If the request was declined, we can allow sending a new friend request
@@ -64,13 +65,13 @@ func (s *FriendshipService) SendFriendRequest(ctx context.Context, initiator str
 
 	if r == nil {
 		return domain_errors.UserNotFoundError{
-			UserID: receiver,
+			UserID: strconv.Itoa(receiver),
 		}
 	}
 
 	if i == nil {
 		return domain_errors.UserNotFoundError{
-			UserID: initiator,
+			UserID: strconv.Itoa(initiator),
 		}
 	}
 
@@ -85,14 +86,14 @@ func (s *FriendshipService) SendFriendRequest(ctx context.Context, initiator str
 // TODO: For accepting and declining, we should also check if the user is the receiver of the request,
 // otherwise we might have a security issue where a user can accept or decline friend requests that are not meant for them
 // but we need auth for that
-func (s *FriendshipService) AcceptFriendRequest(ctx context.Context, initiator string, receiver string) error {
+func (s *FriendshipService) AcceptFriendRequest(ctx context.Context, initiator int, receiver int) error {
 
 	// Check if friend request exists
 	f, err := s.friendshipRepository.GetFriendship(ctx, initiator, receiver)
 	if err != nil {
 		return domain_errors.NotFriendsError{
-			Initiator: initiator,
-			Receiver:  receiver,
+			Initiator: strconv.Itoa(initiator),
+			Receiver:  strconv.Itoa(receiver),
 		}
 	}
 
@@ -103,13 +104,13 @@ func (s *FriendshipService) AcceptFriendRequest(ctx context.Context, initiator s
 	return s.friendshipRepository.UpdateFriendshipStatus(ctx, initiator, receiver, value.FriendshipStatusAccepted)
 }
 
-func (s *FriendshipService) DeclineFriendRequest(ctx context.Context, initiator string, receiver string) error {
+func (s *FriendshipService) DeclineFriendRequest(ctx context.Context, initiator int, receiver int) error {
 
 	f, err := s.friendshipRepository.GetFriendship(ctx, initiator, receiver)
 	if err != nil {
 		return domain_errors.NotFriendsError{
-			Initiator: initiator,
-			Receiver:  receiver,
+			Initiator: strconv.Itoa(initiator),
+			Receiver:  strconv.Itoa(receiver),
 		}
 	}
 
@@ -120,7 +121,7 @@ func (s *FriendshipService) DeclineFriendRequest(ctx context.Context, initiator 
 	return s.friendshipRepository.UpdateFriendshipStatus(ctx, initiator, receiver, value.FriendshipStatusDeclined)
 }
 
-func (s *FriendshipService) BlockUser(ctx context.Context, initiator string, receiver string) error {
+func (s *FriendshipService) BlockUser(ctx context.Context, initiator int, receiver int) error {
 
 	// If not friends, create a new blocked relationship
 	if _, err := s.friendshipRepository.GetFriendship(ctx, initiator, receiver); err != nil {
@@ -134,7 +135,7 @@ func (s *FriendshipService) BlockUser(ctx context.Context, initiator string, rec
 
 	return s.friendshipRepository.UpdateFriendshipStatus(ctx, initiator, receiver, value.FriendshipStatusBlocked)
 }
-func (s *FriendshipService) GetFriendList(ctx context.Context, userId string) ([]domain.User, error) {
+func (s *FriendshipService) GetFriendList(ctx context.Context, userId int) ([]domain.User, error) {
 	friends, err := s.friendshipRepository.GetFriends(ctx, userId)
 	if err != nil {
 		return nil, err
@@ -156,7 +157,7 @@ func (s *FriendshipService) GetFriendList(ctx context.Context, userId string) ([
 	return friendDetails, nil
 }
 
-func (s *FriendshipService) GetPendingFriendRequests(ctx context.Context, userId string) ([]domain.User, error) {
+func (s *FriendshipService) GetPendingFriendRequests(ctx context.Context, userId int) ([]domain.User, error) {
 	requests, err := s.friendshipRepository.GetPendingFriendRequests(ctx, userId)
 	if err != nil {
 		return nil, err

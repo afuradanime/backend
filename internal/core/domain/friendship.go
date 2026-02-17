@@ -7,14 +7,14 @@ import (
 )
 
 type Friendship struct {
-	Initiator string
-	Receiver  string
-	Status    value.FriendshipStatus
+	Initiator int                    `json:"initiator" bson:"initiator"`
+	Receiver  int                    `json:"receiver" bson:"receiver"`
+	Status    value.FriendshipStatus `json:"status" bson:"status"`
 
-	CreatedAt string
+	CreatedAt string `json:"created_at" bson:"created_at"`
 }
 
-func NewFriendRequest(initiator string, receiver string) *Friendship {
+func NewFriendRequest(initiator int, receiver int) *Friendship {
 	return &Friendship{
 		Initiator: initiator,
 		Receiver:  receiver,
@@ -22,7 +22,7 @@ func NewFriendRequest(initiator string, receiver string) *Friendship {
 	}
 }
 
-func NewBlockedUser(initiator string, receiver string) *Friendship {
+func NewBlockedUser(initiator int, receiver int) *Friendship {
 
 	currentTime := time.Now().Format(time.RFC3339)
 
