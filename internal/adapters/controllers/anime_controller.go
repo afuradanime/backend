@@ -8,6 +8,7 @@ import (
 	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/domain/value"
 	"github.com/afuradanime/backend/internal/core/interfaces"
+	"github.com/afuradanime/backend/internal/core/utils"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -46,23 +47,30 @@ func (ac *AnimeController) SearchAnime(w http.ResponseWriter, r *http.Request) {
 
 	// Get pagination parameters with defaults
 	pageNumber := 0
-	pageSize := 50 // Im keeping page sized fixed, maybe move it to the config or let the user set it idk
-	// True answer: Let user decide but clamp it to a fixed size
+	pageSize := 50
 
-	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
+	if pageStr := r.URL.Query().Get("pageNumber"); pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p >= 0 {
 			pageNumber = p
 		}
 	}
 
-	animes, err := ac.animeService.FetchAnimeFromQuery(query, pageNumber, pageSize)
+	animes, pagination, err := ac.animeService.FetchAnimeFromQuery(query, pageNumber, pageSize)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	response := struct {
+		Animes     []*domain.Anime  `json:"animes"`
+		Pagination utils.Pagination `json:"pagination"`
+	}{
+		Animes:     animes,
+		Pagination: pagination,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(animes)
+	json.NewEncoder(w).Encode(response)
 }
 
 func (ac *AnimeController) GetAnimeThisSeason(w http.ResponseWriter, r *http.Request) {
@@ -85,24 +93,36 @@ func (ac *AnimeController) GetAnimeByStudioID(w http.ResponseWriter, r *http.Req
 	pageNumber := 0
 	pageSize := 50
 
-	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
+	if pageStr := r.URL.Query().Get("pageNumber"); pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p >= 0 {
 			pageNumber = p
 		}
 	}
 
-	studio, animes, err := ac.animeService.FetchStudioByID(uint32(id), pageNumber, pageSize)
+	if sizeStr := r.URL.Query().Get("pageSize"); sizeStr != "" {
+		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 {
+			pageSize = s
+		}
+	}
+
+	if pageSize > 50 {
+		pageSize = 50
+	}
+
+	studio, animes, pagination, err := ac.animeService.FetchStudioByID(uint32(id), pageNumber, pageSize)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	response := struct {
-		Studio *value.Studio   `json:"studio"`
-		Animes []*domain.Anime `json:"animes"`
+		Studio     *value.Studio    `json:"studio"`
+		Animes     []*domain.Anime  `json:"animes"`
+		Pagination utils.Pagination `json:"pagination"`
 	}{
-		Studio: studio,
-		Animes: animes,
+		Studio:     studio,
+		Animes:     animes,
+		Pagination: pagination,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -119,24 +139,36 @@ func (ac *AnimeController) GetAnimeByProducerID(w http.ResponseWriter, r *http.R
 	pageNumber := 0
 	pageSize := 50
 
-	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
+	if pageStr := r.URL.Query().Get("pageNumber"); pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p >= 0 {
 			pageNumber = p
 		}
 	}
 
-	producer, animes, err := ac.animeService.FetchProducerByID(uint32(id), pageNumber, pageSize)
+	if sizeStr := r.URL.Query().Get("pageSize"); sizeStr != "" {
+		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 {
+			pageSize = s
+		}
+	}
+
+	if pageSize > 50 {
+		pageSize = 50
+	}
+
+	producer, animes, pagination, err := ac.animeService.FetchProducerByID(uint32(id), pageNumber, pageSize)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	response := struct {
-		Producer *value.Producer `json:"producer"`
-		Animes   []*domain.Anime `json:"animes"`
+		Producer   *value.Producer  `json:"producer"`
+		Animes     []*domain.Anime  `json:"animes"`
+		Pagination utils.Pagination `json:"pagination"`
 	}{
-		Producer: producer,
-		Animes:   animes,
+		Producer:   producer,
+		Animes:     animes,
+		Pagination: pagination,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -153,24 +185,36 @@ func (ac *AnimeController) GetAnimeByLicensorID(w http.ResponseWriter, r *http.R
 	pageNumber := 0
 	pageSize := 50
 
-	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
+	if pageStr := r.URL.Query().Get("pageNumber"); pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p >= 0 {
 			pageNumber = p
 		}
 	}
 
-	licensor, animes, err := ac.animeService.FetchLicensorByID(uint32(id), pageNumber, pageSize)
+	if sizeStr := r.URL.Query().Get("pageSize"); sizeStr != "" {
+		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 {
+			pageSize = s
+		}
+	}
+
+	if pageSize > 50 {
+		pageSize = 50
+	}
+
+	licensor, animes, pagination, err := ac.animeService.FetchLicensorByID(uint32(id), pageNumber, pageSize)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	response := struct {
-		Licensor *value.Licensor `json:"licensor"`
-		Animes   []*domain.Anime `json:"animes"`
+		Licensor   *value.Licensor  `json:"licensor"`
+		Animes     []*domain.Anime  `json:"animes"`
+		Pagination utils.Pagination `json:"pagination"`
 	}{
-		Licensor: licensor,
-		Animes:   animes,
+		Licensor:   licensor,
+		Animes:     animes,
+		Pagination: pagination,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
