@@ -170,3 +170,35 @@ func (m *AnimeMapper) CToGoPartial(animePtr unsafe.Pointer) (*domain.Anime, erro
 
 	return anime, nil
 }
+
+func (m *AnimeMapper) CToGoStudio(ptr unsafe.Pointer) (*value.Studio, error) {
+	cStudio := (*C.studio_t)(ptr)
+
+	return &value.Studio{
+		ID:   uint32(cStudio.id),
+		Name: C.GoString(cStudio.name),
+		URL:  C.GoString(cStudio.url),
+	}, nil
+}
+
+func (m *AnimeMapper) CToGoProducer(ptr unsafe.Pointer) (*value.Producer, error) {
+	cProducer := (*C.producer_t)(ptr)
+
+	return &value.Producer{
+		ID:   uint32(cProducer.id),
+		Name: C.GoString(cProducer.name),
+		Type: C.GoString(cProducer._type),
+		URL:  C.GoString(cProducer.url),
+	}, nil
+}
+
+func (m *AnimeMapper) CToGoLicensor(ptr unsafe.Pointer) (*value.Licensor, error) {
+	cLicensor := (*C.licensor_t)(ptr)
+
+	return &value.Licensor{
+		ID:   uint32(cLicensor.id),
+		Name: C.GoString(cLicensor.name),
+		Type: C.GoString(cLicensor._type),
+		URL:  C.GoString(cLicensor.url),
+	}, nil
+}
