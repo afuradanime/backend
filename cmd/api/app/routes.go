@@ -35,7 +35,8 @@ func (a *Application) InitRoutes(r *chi.Mux) {
 
 func (a *Application) BootstrapUserModule() chi.Router {
 	userRepo := repositories.NewUserRepository(a.Mongo)
-	userService := services.NewUserService(userRepo)
+	thRepo := repositories.NewThreadRepository(a.Mongo)
+	userService := services.NewUserService(userRepo, thRepo)
 	userController := controllers.NewUserController(userService)
 
 	r := chi.NewRouter()
@@ -83,7 +84,8 @@ func (a *Application) BootstrapFriendsModule() chi.Router {
 func (a *Application) BootstrapAuthModule() chi.Router {
 
 	jwtService := services.NewJWTService(a.JWTConfig)
-	userService := services.NewUserService(repositories.NewUserRepository(a.Mongo))
+	thRepo := repositories.NewThreadRepository(a.Mongo)
+	userService := services.NewUserService(repositories.NewUserRepository(a.Mongo), thRepo)
 	googleAuthController := controllers.NewGoogleAuthController(a.OAuth2Config, jwtService, userService)
 
 	r := chi.NewRouter()

@@ -8,11 +8,12 @@ import (
 )
 
 type UserService struct {
-	userRepository interfaces.UserRepository
+	userRepository    interfaces.UserRepository
+	threadsRepository interfaces.ThreadsRepository
 }
 
-func NewUserService(repo interfaces.UserRepository) *UserService {
-	return &UserService{userRepository: repo}
+func NewUserService(repo interfaces.UserRepository, threpo interfaces.ThreadsRepository) *UserService {
+	return &UserService{userRepository: repo, threadsRepository: threpo}
 }
 
 func (s *UserService) GetUsers(ctx context.Context) ([]*domain.User, error) {
@@ -27,9 +28,19 @@ func (s *UserService) GetUserByProvider(ctx context.Context, provider string, pr
 	return s.userRepository.GetUserByProvider(ctx, provider, providerID)
 }
 
-func (s *UserService) RegisterUser(ctx context.Context, user *domain.User) error {
+func (s *UserService) RegisterUser(ctx context.Context, user *domain.User) (*domain.User, error) {
 	// TODO: Check if user with same email or username already exists before creating a new one
-	return s.userRepository.CreateUser(ctx, user)
+	added_user, err := s.userRepository.CreateUser(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+	// Create profile thread context for the user
+	profile_thcontext := domain.NewContext(added_user.ID, "Profile")
+	_, err = s.threadsRepository.CreateThreadContext(ctx, profile_thcontext)
+	if err != nil {
+		return nil, err
+	}
+	return added_user, nil
 }
 
 func (s *UserService) UpdatePersonalInfo(ctx context.Context, id int, email *string, username *string, location *string, pronouns *string, socials *[]string) error {

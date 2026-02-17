@@ -141,7 +141,7 @@ func (gac *GoogleAuthController) Callback(w http.ResponseWriter, r *http.Request
 		user_model.AvatarURL = userInfo.Picture
 
 		// Register the user
-		err = gac.userService.RegisterUser(context.Background(), user_model)
+		_, err = gac.userService.RegisterUser(context.Background(), user_model)
 		if err != nil {
 			http.Error(w, "Failed to register user: "+err.Error(), http.StatusInternalServerError)
 			return

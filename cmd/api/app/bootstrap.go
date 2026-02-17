@@ -21,6 +21,10 @@ func (a *Application) Bootstrap() {
 	// Bootstrap users and get their auto-generated IDs
 	krayID, taikoID, testID := BootstrapUsers(context.Background(), userRepo)
 
+	// Bootstrap thread contexts for user profiles
+	threadRepo := repositories.NewThreadRepository(a.Mongo)
+	BootstrapThreadContexts(context.Background(), threadRepo, krayID, taikoID, testID)
+
 	// Bootstrap friendships using the actual user IDs
 	BootstrapFriendships(context.Background(), friendshipRepo, krayID, taikoID, testID)
 }
@@ -44,7 +48,7 @@ func BootstrapUsers(ctx context.Context, userRepo *repositories.UserRepository) 
 	userKray.UpdateAvatarURL("/pfps/d7dea5d3e09941f563dabf364b4db31cac63a5f1.png")
 
 	// Create user and get auto-generated ID
-	err = userRepo.CreateUser(ctx, userKray)
+	_, err = userRepo.CreateUser(ctx, userKray)
 	if err != nil {
 		panic(err)
 	}
@@ -67,7 +71,7 @@ func BootstrapUsers(ctx context.Context, userRepo *repositories.UserRepository) 
 	userTaiko.UpdateAvatarURL("/pfps/e59084c01caf44df3c240a3c78009d080ea02556.png")
 
 	// Create user and get auto-generated ID
-	err = userRepo.CreateUser(ctx, userTaiko)
+	_, err = userRepo.CreateUser(ctx, userTaiko)
 	if err != nil {
 		panic(err)
 	}
@@ -86,13 +90,23 @@ func BootstrapUsers(ctx context.Context, userRepo *repositories.UserRepository) 
 	userTest.UpdatePronouns("user/teste")
 
 	// Create user and get auto-generated ID
-	err = userRepo.CreateUser(ctx, userTest)
+	_, err = userRepo.CreateUser(ctx, userTest)
 	if err != nil {
 		panic(err)
 	}
 	testID = userTest.ID
 
 	return krayID, taikoID, testID
+}
+
+func BootstrapThreadContexts(ctx context.Context, threadRepo *repositories.ThreadRepository, krayID, taikoID, testID int) {
+	for _, userID := range []int{krayID, taikoID, testID} {
+		tc := domain.NewContext(userID, "Profile")
+		_, err := threadRepo.CreateThreadContext(ctx, tc)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 func BootstrapFriendships(ctx context.Context, friendshipRepo *repositories.FriendshipRepository, krayID, taikoID, testID int) {

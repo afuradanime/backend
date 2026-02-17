@@ -5,7 +5,7 @@ import (
 
 	"github.com/afuradanime/backend/config"
 	"github.com/afuradanime/backend/internal/core/domain"
-	"github.com/afuradanime/backend/internal/utils"
+	"github.com/afuradanime/backend/internal/core/utils"
 	"github.com/golang-jwt/jwt/v5"
 )
 

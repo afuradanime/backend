@@ -88,18 +88,18 @@ func (r *UserRepository) GetUserByProvider(ctx context.Context, provider string,
 	return &user, nil
 }
 
-func (r *UserRepository) CreateUser(ctx context.Context, user *domain.User) error {
+func (r *UserRepository) CreateUser(ctx context.Context, user *domain.User) (*domain.User, error) {
 	// Get next auto-incrementing ID
 	nextID, err := r.getNextSequence(ctx, "user_id")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	user.ID = nextID
 	user.CreatedAt = time.Now()
 
 	_, err = r.collection.InsertOne(ctx, user)
-	return err
+	return user, err
 }
 
 func (r *UserRepository) UpdatePersonalInfo(
