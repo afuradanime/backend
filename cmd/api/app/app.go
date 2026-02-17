@@ -7,6 +7,7 @@ import (
 	"github.com/afuradanime/backend/cmd/api/app/database"
 	"github.com/afuradanime/backend/config"
 	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/oauth2"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -14,13 +15,17 @@ import (
 )
 
 type Application struct {
-	Config *config.Config
-	Mongo  *mongo.Database // The mongo database handle
+	Config       *config.Config
+	OAuth2Config *oauth2.Config
+	JWTConfig    *config.JWTConfig
+	Mongo        *mongo.Database // The mongo database handle
 }
 
 func New() *Application {
 
 	Config := config.Load()
+	OAuth2 := config.LoadOauth2()
+	JWTConfig := config.LoadJWTConfig()
 	log.Println("Config loaded successfully!")
 
 	// Setup Sqlite connection
@@ -33,8 +38,10 @@ func New() *Application {
 	}
 
 	app := &Application{
-		Mongo:  mongoClient.Database("afuradanime"),
-		Config: Config,
+		Mongo:        mongoClient.Database("afuradanime"),
+		Config:       Config,
+		OAuth2Config: OAuth2,
+		JWTConfig:    JWTConfig,
 	}
 
 	if Config.ShouldBootstrap {
