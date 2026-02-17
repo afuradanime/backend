@@ -49,7 +49,12 @@ func (app *Application) Run() {
 	// Setup HTTP server
 	r := chi.NewRouter()
 
-	r.Use(middleware.Logger)
+	r.Use(
+		middleware.Logger,
+		middleware.Recoverer, // useful middleware to recover from panics and return a 500 error
+	)
+
+	// CORS setup
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{app.Config.FrontendURL, "http://localhost:*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
