@@ -55,6 +55,12 @@ func (ac *AnimeController) SearchAnime(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if sizeStr := r.URL.Query().Get("pageSize"); sizeStr != "" {
+		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 {
+			pageSize = s
+		}
+	}
+
 	animes, pagination, err := ac.animeService.FetchAnimeFromQuery(query, pageNumber, pageSize)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -74,13 +80,42 @@ func (ac *AnimeController) SearchAnime(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ac *AnimeController) GetAnimeThisSeason(w http.ResponseWriter, r *http.Request) {
-	animes, err := ac.animeService.FetchAnimeThisSeason()
+
+	pageNumber := 0
+	pageSize := 50
+
+	if pageStr := r.URL.Query().Get("pageNumber"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p >= 0 {
+			pageNumber = p
+		}
+	}
+
+	if sizeStr := r.URL.Query().Get("pageSize"); sizeStr != "" {
+		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 {
+			pageSize = s
+		}
+	}
+
+	if pageSize > 50 {
+		pageSize = 50
+	}
+
+	animes, pagination, err := ac.animeService.FetchAnimeThisSeason(pageNumber, pageSize)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	response := struct {
+		Animes     []*domain.Anime  `json:"animes"`
+		Pagination utils.Pagination `json:"pagination"`
+	}{
+		Animes:     animes,
+		Pagination: pagination,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(animes)
+	json.NewEncoder(w).Encode(response)
 }
 
 func (ac *AnimeController) GetAnimeByStudioID(w http.ResponseWriter, r *http.Request) {
