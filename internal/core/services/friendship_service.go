@@ -178,3 +178,17 @@ func (s *FriendshipService) GetPendingFriendRequests(ctx context.Context, userId
 
 	return requestDetails, nil
 }
+
+func (s *FriendshipService) AreFriends(ctx context.Context, userA int, userB int) (bool, error) {
+	f, err := s.friendshipRepository.GetFriendship(ctx, userA, userB)
+	if err == nil && f != nil && f.GetStatus() == value.FriendshipStatusAccepted {
+		return true, nil
+	}
+
+	f, err = s.friendshipRepository.GetFriendship(ctx, userB, userA)
+	if err == nil && f != nil && f.GetStatus() == value.FriendshipStatusAccepted {
+		return true, nil
+	}
+
+	return false, nil
+}
