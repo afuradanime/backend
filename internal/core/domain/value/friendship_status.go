@@ -9,4 +9,5 @@ const (
 	FriendshipStatusAccepted
 	FriendshipStatusDeclined
 	FriendshipStatusBlocked
+	FriendshipStatusNone // This one is just a helper, should never be persisted
 )

@@ -54,6 +54,7 @@ func (gac *GoogleAuthController) Login(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "oauthstate",
 		Value:    state,
+		Path:     "/",
 		HttpOnly: true,
 		Secure:   false, // https
 	})
@@ -107,7 +108,7 @@ func (gac *GoogleAuthController) Callback(w http.ResponseWriter, r *http.Request
 	state := r.FormValue("state")
 	if state != cookie.Value {
 		// Compare our client defined state with the state returned by Google
-		http.Error(w, "Invalid OAuth state", http.StatusBadRequest)
+		http.Error(w, "Invalid OAuth state "+state+" "+cookie.Value, http.StatusBadRequest)
 		return
 	}
 

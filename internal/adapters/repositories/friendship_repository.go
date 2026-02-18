@@ -53,6 +53,22 @@ func (r *FriendshipRepository) UpdateFriendshipStatus(ctx context.Context, initi
 	return err
 }
 
+func (r *FriendshipRepository) DeleteFriendship(ctx context.Context, initiator int, receiver int) error {
+	_, err := r.collection.DeleteOne(ctx, bson.M{
+		"$or": []bson.M{
+			{
+				"initiator": initiator,
+				"receiver":  receiver,
+			},
+			{
+				"initiator": receiver,
+				"receiver":  initiator,
+			},
+		},
+	})
+	return err
+}
+
 func (r *FriendshipRepository) GetFriends(ctx context.Context, userId int, pageNumber, pageSize int) ([]int, utils.Pagination, error) {
 
 	skip := (pageNumber - 1) * pageSize

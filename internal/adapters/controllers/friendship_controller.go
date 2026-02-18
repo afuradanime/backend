@@ -6,6 +6,8 @@ import (
 	"strconv"
 
 	"github.com/afuradanime/backend/internal/adapters/middlewares"
+	"github.com/afuradanime/backend/internal/core/domain"
+	"github.com/afuradanime/backend/internal/core/domain/value"
 	"github.com/afuradanime/backend/internal/core/interfaces"
 	"github.com/go-chi/chi/v5"
 )
@@ -206,7 +208,7 @@ func (c *FriendshipController) ListPendingFriendRequests(w http.ResponseWriter, 
 	json.NewEncoder(w).Encode(resp)
 }
 
-func (c *FriendshipController) AreFriends(w http.ResponseWriter, r *http.Request) {
+func (c *FriendshipController) FetchFriendshipStatus(w http.ResponseWriter, r *http.Request) {
 	userA, ok := getUserIDFromContext(r)
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -220,12 +222,21 @@ func (c *FriendshipController) AreFriends(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	areFriends, err := c.friendshipService.AreFriends(r.Context(), userA, userB)
+	friendshipStatus, err := c.friendshipService.FetchFriendshipStatus(r.Context(), userA, userB)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	if friendshipStatus == nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(domain.Friendship{
+			Initiator: userA,
+			Receiver:  userB,
+			Status:    value.FriendshipStatusNone,
+		})
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]bool{"areFriends": areFriends})
+	json.NewEncoder(w).Encode(*friendshipStatus)
 }

@@ -40,10 +40,10 @@ func (ac *AnimeController) GetAnimeByID(w http.ResponseWriter, r *http.Request) 
 func (ac *AnimeController) SearchAnime(w http.ResponseWriter, r *http.Request) {
 	// Get query parameter
 	query := r.URL.Query().Get("q")
-	if query == "" {
-		http.Error(w, "Query parameter 'q' is required", http.StatusBadRequest)
-		return
-	}
+	// if query == "" {
+	// 	http.Error(w, "Query parameter 'q' is required", http.StatusBadRequest)
+	// 	return
+	// }
 
 	// Get pagination parameters with defaults
 	pageNumber := 1

@@ -11,7 +11,7 @@ type Friendship struct {
 	Receiver  int                    `json:"receiver" bson:"receiver"`
 	Status    value.FriendshipStatus `json:"status" bson:"status"`
 
-	CreatedAt string `json:"created_at" bson:"created_at"`
+	CreatedAt time.Time `json:"CreatedAt" bson:"created_at"`
 }
 
 func NewFriendRequest(initiator int, receiver int) *Friendship {
@@ -19,18 +19,17 @@ func NewFriendRequest(initiator int, receiver int) *Friendship {
 		Initiator: initiator,
 		Receiver:  receiver,
 		Status:    value.FriendshipStatusPending,
+		CreatedAt: time.Now(),
 	}
 }
 
 func NewBlockedUser(initiator int, receiver int) *Friendship {
 
-	currentTime := time.Now().Format(time.RFC3339)
-
 	return &Friendship{
 		Initiator: initiator,
 		Receiver:  receiver,
 		Status:    value.FriendshipStatusBlocked,
-		CreatedAt: currentTime,
+		CreatedAt: time.Now(),
 	}
 }
 

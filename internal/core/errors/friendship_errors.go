@@ -60,3 +60,9 @@ type CannotAcceptAlienRequest struct{}
 func (e CannotAcceptAlienRequest) Error() string {
 	return "You cannot act on this request"
 }
+
+type AlreadyBlocked struct{}
+
+func (e AlreadyBlocked) Error() string {
+	return "You are already blocked by this user"
+}

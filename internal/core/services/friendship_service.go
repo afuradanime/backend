@@ -31,7 +31,7 @@ func (s *FriendshipService) SendFriendRequest(ctx context.Context, initiator int
 	}
 
 	// Check if relationship already exists
-	f, err := s.friendshipRepository.GetFriendship(ctx, initiator, receiver)
+	f, err := s.FetchFriendshipStatus(ctx, initiator, receiver)
 	if err == nil && f != nil {
 		// Check if blocked or already friends
 		if f.GetStatus() == value.FriendshipStatusBlocked {
@@ -61,11 +61,6 @@ func (s *FriendshipService) SendFriendRequest(ctx context.Context, initiator int
 					Receiver:  strconv.Itoa(receiver),
 				}
 			}
-
-		} else if f.GetStatus() == value.FriendshipStatusDeclined {
-			// If the request was declined, we can allow sending a new friend request
-			// but we "delete" the old declined request
-			return s.friendshipRepository.UpdateFriendshipStatus(ctx, initiator, receiver, value.FriendshipStatusPending)
 		}
 	}
 
@@ -138,12 +133,17 @@ func (s *FriendshipService) DeclineFriendRequest(ctx context.Context, initiator 
 		return domain_errors.CannotAcceptAlienRequest{}
 	}
 
-	return s.friendshipRepository.UpdateFriendshipStatus(ctx, initiator, receiver, value.FriendshipStatusDeclined)
+	// This is a bit of a headache, I'd rather just delete that shit if it's declined
+	return s.friendshipRepository.DeleteFriendship(ctx, initiator, receiver)
 }
 
 func (s *FriendshipService) BlockUser(ctx context.Context, initiator int, receiver int) error {
 
-	f, err := s.friendshipRepository.GetFriendship(ctx, initiator, receiver)
+	if initiator == receiver {
+		return domain_errors.CannotBlockYourselfError{}
+	}
+
+	f, err := s.FetchFriendshipStatus(ctx, initiator, receiver)
 	if err != nil && !errors.Is(err, domain_errors.UserNotFoundError{}) {
 		return err
 	}
@@ -154,11 +154,12 @@ func (s *FriendshipService) BlockUser(ctx context.Context, initiator int, receiv
 		return s.friendshipRepository.CreateFriendship(ctx, friendship)
 	}
 
-	if initiator == receiver {
-		return domain_errors.CannotBlockYourselfError{}
+	// Check if already blocked
+	if f.Status == value.FriendshipStatusBlocked {
+		return domain_errors.AlreadyBlocked{}
 	}
 
-	return s.friendshipRepository.UpdateFriendshipStatus(ctx, initiator, receiver, value.FriendshipStatusBlocked)
+	return s.friendshipRepository.UpdateFriendshipStatus(ctx, f.Initiator, f.Receiver, value.FriendshipStatusBlocked)
 }
 func (s *FriendshipService) GetFriendList(ctx context.Context, userId int, pageNumber, pageSize int) ([]domain.User, utils.Pagination, error) {
 	friends, pagination, err := s.friendshipRepository.GetFriends(ctx, userId, pageNumber, pageSize)
@@ -204,11 +205,18 @@ func (s *FriendshipService) GetPendingFriendRequests(ctx context.Context, userId
 	return requestDetails, pagination, nil
 }
 
-func (s *FriendshipService) AreFriends(ctx context.Context, userA int, userB int) (bool, error) {
+func (s *FriendshipService) FetchFriendshipStatus(ctx context.Context, userA int, userB int) (*domain.Friendship, error) {
+	// Check if A sent a request to B
 	f, err := s.friendshipRepository.GetFriendship(ctx, userA, userB)
-	if err == nil && f != nil && f.GetStatus() == value.FriendshipStatusAccepted {
-		return true, nil
+	if err == nil && f != nil {
+		return f, nil
 	}
 
-	return false, nil
+	// Check if B sent a request to A
+	f2, err := s.friendshipRepository.GetFriendship(ctx, userB, userA)
+	if err == nil && f2 != nil {
+		return f2, nil
+	}
+
+	return nil, nil
 }
