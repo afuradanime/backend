@@ -5,6 +5,7 @@ import (
 
 	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/domain/value"
+	"github.com/afuradanime/backend/internal/core/utils"
 )
 
 type FriendshipService interface {
@@ -12,8 +13,8 @@ type FriendshipService interface {
 	AcceptFriendRequest(ctx context.Context, initiator int, receiver int) error
 	DeclineFriendRequest(ctx context.Context, initiator int, receiver int) error
 	BlockUser(ctx context.Context, initiator int, receiver int) error
-	GetFriendList(ctx context.Context, userId int) ([]domain.User, error)
-	GetPendingFriendRequests(ctx context.Context, userId int) ([]domain.User, error)
+	GetFriendList(ctx context.Context, userId int, pageNumber, pageSize int) ([]domain.User, utils.Pagination, error)
+	GetPendingFriendRequests(ctx context.Context, userId int, pageNumber, pageSize int) ([]domain.User, utils.Pagination, error)
 	AreFriends(ctx context.Context, userA int, userB int) (bool, error)
 }
 
@@ -21,6 +22,6 @@ type FriendshipRepository interface {
 	CreateFriendship(ctx context.Context, friendship *domain.Friendship) error
 	GetFriendship(ctx context.Context, initiator int, receiver int) (*domain.Friendship, error)
 	UpdateFriendshipStatus(ctx context.Context, initiator int, receiver int, status value.FriendshipStatus) error
-	GetFriends(ctx context.Context, userId int) ([]int, error)
-	GetPendingFriendRequests(ctx context.Context, userId int) ([]int, error)
+	GetFriends(ctx context.Context, userId int, pageNumber, pageSize int) ([]int, utils.Pagination, error)
+	GetPendingFriendRequests(ctx context.Context, userId int, pageNumber, pageSize int) ([]int, utils.Pagination, error)
 }

@@ -54,3 +54,9 @@ type CannotBlockYourselfError struct{}
 func (e CannotBlockYourselfError) Error() string {
 	return "You cannot block yourself"
 }
+
+type CannotAcceptAlienRequest struct{}
+
+func (e CannotAcceptAlienRequest) Error() string {
+	return "You cannot act on this request"
+}

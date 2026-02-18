@@ -1,7 +1,7 @@
 package app
 
 import (
-	"log"
+	"net/http"
 
 	"github.com/afuradanime/backend/internal/adapters/controllers"
 	"github.com/afuradanime/backend/internal/adapters/middlewares"
@@ -10,27 +10,42 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func (a *Application) InitRoutes(r *chi.Mux) {
+// TODO: cors
+func CORSMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			origin = "http://localhost:5173"
+		}
 
-	log.Printf("[Routing] Initializing public routes...")
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-CSRF-Token")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.Header().Set("Vary", "Origin")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (a *Application) InitRoutes(r *chi.Mux) {
+	r.Use(CORSMiddleware)
+
 	r.Group(func(r chi.Router) {
 		r.Mount("/auth", a.BootstrapAuthModule())
-		log.Println("[Routing] Auth routes initialized")
 		r.Mount("/anime", a.BootstrapAnimeModule())
-		log.Println("[Routing] Anime routes initialized")
-
 	})
 
-	log.Printf("[Routing] Initializing protected routes...")
 	r.Group(func(r chi.Router) {
 		r.Use(middlewares.JWTMiddleware(a.JWTConfig))
 		r.Mount("/users", a.BootstrapUserModule())
-		log.Println("[Routing] User routes initialized")
 		r.Mount("/friends", a.BootstrapFriendsModule())
-		log.Println("[Routing] Friendship routes initialized")
 	})
-
-	log.Println("[Routing] All routes initialized successfully!")
 }
 
 func (a *Application) BootstrapUserModule() chi.Router {
@@ -70,13 +85,13 @@ func (a *Application) BootstrapFriendsModule() chi.Router {
 	friendshipController := controllers.NewFriendshipController(friendshipService)
 
 	r := chi.NewRouter()
-	r.Put("/send/{initiator}/{receiver}", friendshipController.SendFriendRequest)
-	r.Put("/accept/{initiator}/{receiver}", friendshipController.AcceptFriendRequest)
-	r.Put("/decline/{initiator}/{receiver}", friendshipController.DeclineFriendRequest)
-	r.Put("/block/{initiator}/{receiver}", friendshipController.BlockUser)
+	r.Put("/send/{receiver}", friendshipController.SendFriendRequest)
+	r.Put("/accept/{initiator}", friendshipController.AcceptFriendRequest)
+	r.Put("/decline/{initiator}", friendshipController.DeclineFriendRequest)
+	r.Put("/block/{receiver}", friendshipController.BlockUser)
 	r.Get("/{userID}", friendshipController.ListFriends)
-	r.Get("/pending/{userID}", friendshipController.ListPendingFriendRequests)
-	r.Get("/check/{initiator}/{receiver}", friendshipController.AreFriends)
+	r.Get("/pending", friendshipController.ListPendingFriendRequests)
+	r.Get("/check/{receiver}", friendshipController.AreFriends)
 
 	return r
 }

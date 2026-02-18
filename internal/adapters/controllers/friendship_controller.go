@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/afuradanime/backend/internal/adapters/middlewares"
 	"github.com/afuradanime/backend/internal/core/interfaces"
 	"github.com/go-chi/chi/v5"
 )
@@ -19,32 +20,23 @@ func NewFriendshipController(friendshipService interfaces.FriendshipService) *Fr
 	}
 }
 
-// helper to get initiator and receiver safely
-func getInitiatorAndReceiver(r *http.Request) (int, int, error) {
-	initiatorStr := chi.URLParam(r, "initiator")
-	receiverStr := chi.URLParam(r, "receiver")
-
-	if initiatorStr == "" || receiverStr == "" {
-		return 0, 0, http.ErrMissingFile
-	}
-
-	initiator, err := strconv.Atoi(initiatorStr)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	receiver, err := strconv.Atoi(receiverStr)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	return initiator, receiver, nil
+func getUserIDFromContext(r *http.Request) (int, bool) {
+	userID, ok := r.Context().Value(middlewares.UserIDKey).(int)
+	return userID, ok
 }
 
 func (c *FriendshipController) SendFriendRequest(w http.ResponseWriter, r *http.Request) {
-	initiator, receiver, err := getInitiatorAndReceiver(r)
+
+	initiator, ok := getUserIDFromContext(r)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	receiverStr := chi.URLParam(r, "receiver")
+	receiver, err := strconv.Atoi(receiverStr)
 	if err != nil {
-		http.Error(w, "Both initiator and receiver are required", http.StatusBadRequest)
+		http.Error(w, "Invalid receiver ID", http.StatusBadRequest)
 		return
 	}
 
@@ -57,9 +49,16 @@ func (c *FriendshipController) SendFriendRequest(w http.ResponseWriter, r *http.
 }
 
 func (c *FriendshipController) AcceptFriendRequest(w http.ResponseWriter, r *http.Request) {
-	initiator, receiver, err := getInitiatorAndReceiver(r)
+	receiver, ok := getUserIDFromContext(r)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	initiatorStr := chi.URLParam(r, "initiator")
+	initiator, err := strconv.Atoi(initiatorStr)
 	if err != nil {
-		http.Error(w, "Both initiator and receiver are required", http.StatusBadRequest)
+		http.Error(w, "Invalid initiator ID", http.StatusBadRequest)
 		return
 	}
 
@@ -72,9 +71,16 @@ func (c *FriendshipController) AcceptFriendRequest(w http.ResponseWriter, r *htt
 }
 
 func (c *FriendshipController) DeclineFriendRequest(w http.ResponseWriter, r *http.Request) {
-	initiator, receiver, err := getInitiatorAndReceiver(r)
+	receiver, ok := getUserIDFromContext(r)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	initiatorStr := chi.URLParam(r, "initiator")
+	initiator, err := strconv.Atoi(initiatorStr)
 	if err != nil {
-		http.Error(w, "Both initiator and receiver are required", http.StatusBadRequest)
+		http.Error(w, "Invalid initiator ID", http.StatusBadRequest)
 		return
 	}
 
@@ -87,9 +93,16 @@ func (c *FriendshipController) DeclineFriendRequest(w http.ResponseWriter, r *ht
 }
 
 func (c *FriendshipController) BlockUser(w http.ResponseWriter, r *http.Request) {
-	initiator, receiver, err := getInitiatorAndReceiver(r)
+	initiator, ok := getUserIDFromContext(r)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	receiverStr := chi.URLParam(r, "receiver")
+	receiver, err := strconv.Atoi(receiverStr)
 	if err != nil {
-		http.Error(w, "Both initiator and receiver are required", http.StatusBadRequest)
+		http.Error(w, "Invalid receiver ID", http.StatusBadRequest)
 		return
 	}
 
@@ -102,7 +115,6 @@ func (c *FriendshipController) BlockUser(w http.ResponseWriter, r *http.Request)
 }
 
 func (c *FriendshipController) ListFriends(w http.ResponseWriter, r *http.Request) {
-
 	targetUserStr := chi.URLParam(r, "userID")
 	if targetUserStr == "" {
 		http.Error(w, "User ID is required", http.StatusBadRequest)
@@ -115,50 +127,96 @@ func (c *FriendshipController) ListFriends(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	friends, err := c.friendshipService.GetFriendList(r.Context(), targetUser)
+	// Get pagination parameters with defaults
+	pageNumber := 1
+	pageSize := 50
+
+	if pageStr := r.URL.Query().Get("pageNumber"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p >= 0 {
+			pageNumber = p
+		}
+	}
+
+	if sizeStr := r.URL.Query().Get("pageSize"); sizeStr != "" {
+		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 {
+			pageSize = s
+		}
+	}
+
+	if pageSize > 50 {
+		pageSize = 50
+	}
+
+	friends, pagination, err := c.friendshipService.GetFriendList(r.Context(), targetUser, pageNumber, pageSize)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(friends); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	// Return both data and pagination metadata
+	resp := map[string]interface{}{
+		"data":       friends,
+		"pagination": pagination,
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }
 
 func (c *FriendshipController) ListPendingFriendRequests(w http.ResponseWriter, r *http.Request) {
-
-	targetUserStr := chi.URLParam(r, "userID")
-	if targetUserStr == "" {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
+	userID, ok := getUserIDFromContext(r)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	targetUser, err := strconv.Atoi(targetUserStr)
-	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
-		return
+	// Get pagination parameters with defaults
+	pageNumber := 1
+	pageSize := 50
+
+	if pageStr := r.URL.Query().Get("pageNumber"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p >= 0 {
+			pageNumber = p
+		}
 	}
 
-	requests, err := c.friendshipService.GetPendingFriendRequests(r.Context(), targetUser)
+	if sizeStr := r.URL.Query().Get("pageSize"); sizeStr != "" {
+		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 {
+			pageSize = s
+		}
+	}
+
+	if pageSize > 50 {
+		pageSize = 50
+	}
+
+	requests, pagination, err := c.friendshipService.GetPendingFriendRequests(r.Context(), userID, pageNumber, pageSize)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Return both data and pagination metadata
+	resp := map[string]interface{}{
+		"data":       requests,
+		"pagination": pagination,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(requests); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	json.NewEncoder(w).Encode(resp)
 }
 
 func (c *FriendshipController) AreFriends(w http.ResponseWriter, r *http.Request) {
-	userA, userB, err := getInitiatorAndReceiver(r)
+	userA, ok := getUserIDFromContext(r)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	receiverStr := chi.URLParam(r, "receiver")
+	userB, err := strconv.Atoi(receiverStr)
 	if err != nil {
-		http.Error(w, "Both user IDs are required", http.StatusBadRequest)
+		http.Error(w, "Invalid receiver ID", http.StatusBadRequest)
 		return
 	}
 

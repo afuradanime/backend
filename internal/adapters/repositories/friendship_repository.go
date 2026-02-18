@@ -5,8 +5,10 @@ import (
 
 	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/domain/value"
+	"github.com/afuradanime/backend/internal/core/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type FriendshipRepository struct {
@@ -51,24 +53,36 @@ func (r *FriendshipRepository) UpdateFriendshipStatus(ctx context.Context, initi
 	return err
 }
 
-func (r *FriendshipRepository) GetFriends(ctx context.Context, userId int) ([]int, error) {
+func (r *FriendshipRepository) GetFriends(ctx context.Context, userId int, pageNumber, pageSize int) ([]int, utils.Pagination, error) {
 
-	// Get friendships where user is initiator or receiver and status is accepted
-	cursor, err := r.collection.Find(ctx, bson.M{
+	skip := (pageNumber - 1) * pageSize
+
+	filter := bson.M{
 		"$or": []bson.M{
 			{"initiator": userId},
 			{"receiver": userId},
 		},
 		"status": value.FriendshipStatusAccepted,
-	})
+	}
 
+	total, err := r.collection.CountDocuments(ctx, filter)
 	if err != nil {
-		return nil, err
+		return nil, utils.Pagination{}, err
+	}
+
+	findOptions := options.Find().
+		SetSkip(int64(skip)).
+		SetLimit(int64(pageSize))
+
+	// Get friendships where user is initiator or receiver and status is accepted
+	cursor, err := r.collection.Find(ctx, filter, findOptions)
+	if err != nil {
+		return nil, utils.Pagination{}, err
 	}
 
 	var friendships []domain.Friendship
 	if err := cursor.All(ctx, &friendships); err != nil {
-		return nil, err
+		return nil, utils.Pagination{}, err
 	}
 
 	// Extract friend IDs
@@ -81,24 +95,48 @@ func (r *FriendshipRepository) GetFriends(ctx context.Context, userId int) ([]in
 		}
 	}
 
-	return friendIds, nil
+	// Calculate total pages
+	totalPages := int((total + int64(pageSize) - 1) / int64(pageSize))
+
+	return friendIds, utils.Pagination{
+		PageNumber: pageNumber,
+		PageSize:   pageSize,
+		TotalPages: totalPages,
+	}, nil
 }
 
-func (r *FriendshipRepository) GetPendingFriendRequests(ctx context.Context, userId int) ([]int, error) {
+func (r *FriendshipRepository) GetPendingFriendRequests(
+	ctx context.Context,
+	userId int,
+	pageNumber, pageSize int,
+) ([]int, utils.Pagination, error) {
 
-	// Get friendships where user is receiver and status is pending
-	cursor, err := r.collection.Find(ctx, bson.M{
+	skip := (pageNumber - 1) * pageSize
+
+	filter := bson.M{
 		"receiver": userId,
 		"status":   value.FriendshipStatusPending,
-	})
+	}
 
+	// Count total pending requests
+	total, err := r.collection.CountDocuments(ctx, filter)
 	if err != nil {
-		return nil, err
+		return nil, utils.Pagination{}, err
+	}
+
+	findOptions := options.Find().
+		SetSkip(int64(skip)).
+		SetLimit(int64(pageSize)).
+		SetSort(bson.M{"_id": -1}) // newest requests first
+
+	cursor, err := r.collection.Find(ctx, filter, findOptions)
+	if err != nil {
+		return nil, utils.Pagination{}, err
 	}
 
 	var friendships []domain.Friendship
 	if err := cursor.All(ctx, &friendships); err != nil {
-		return nil, err
+		return nil, utils.Pagination{}, err
 	}
 
 	// Extract initiator IDs
@@ -107,5 +145,12 @@ func (r *FriendshipRepository) GetPendingFriendRequests(ctx context.Context, use
 		requestIds[i] = f.Initiator
 	}
 
-	return requestIds, nil
+	// Calculate total pages
+	totalPages := int((total + int64(pageSize) - 1) / int64(pageSize))
+
+	return requestIds, utils.Pagination{
+		PageNumber: pageNumber,
+		PageSize:   pageSize,
+		TotalPages: totalPages,
+	}, nil
 }

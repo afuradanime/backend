@@ -28,29 +28,29 @@ Content-Type: application/json
 # In the future, initiator should come from auth token.
 
 ### Send Friend Request
-PUT http://localhost:6969/friends/send/1/2
+PUT http://localhost:6969/friends/send/2
 Content-Type: application/json
 
 ### Accept Friend Request
-PUT http://localhost:6969/friends/accept/1/2
+PUT http://localhost:6969/friends/accept/1
 Content-Type: application/json
 
 ### Decline Friend Request
-PUT http://localhost:6969/friends/decline/1/2
+PUT http://localhost:6969/friends/decline/1
 Content-Type: application/json
 
 ### Block User
-PUT http://localhost:6969/friends/block/1/2
+PUT http://localhost:6969/friends/block/2
 Content-Type: application/json
 
 ### List Friends
-GET http://localhost:6969/friends/1
+GET http://localhost:6969/friends/1?pageNumber=0&pageSize=50
 Accept: application/json
 
 ### List Friends Reverse
-GET http://localhost:6969/friends/2
+GET http://localhost:6969/friends/2?pageNumber=0&pageSize=50
 Accept: application/json
 
 ### List Pending Friend Requests
-GET http://localhost:6969/friends/pending/1
+GET http://localhost:6969/friends/pending?pageNumber=0&pageSize=50
 Accept: application/json

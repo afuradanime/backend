@@ -2,12 +2,14 @@ package services
 
 import (
 	"context"
+	"errors"
 	"strconv"
 
 	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/domain/value"
 	domain_errors "github.com/afuradanime/backend/internal/core/errors"
 	"github.com/afuradanime/backend/internal/core/interfaces"
+	"github.com/afuradanime/backend/internal/core/utils"
 )
 
 type FriendshipService struct {
@@ -24,6 +26,10 @@ func NewFriendshipService(userRepo interfaces.UserRepository, friendshipRepo int
 
 func (s *FriendshipService) SendFriendRequest(ctx context.Context, initiator int, receiver int) error {
 
+	if receiver == initiator {
+		return domain_errors.CannotFriendYourselfError{}
+	}
+
 	// Check if relationship already exists
 	f, err := s.friendshipRepository.GetFriendship(ctx, initiator, receiver)
 	if err == nil && f != nil {
@@ -38,17 +44,28 @@ func (s *FriendshipService) SendFriendRequest(ctx context.Context, initiator int
 				Initiator: strconv.Itoa(initiator),
 				Receiver:  strconv.Itoa(receiver),
 			}
+			// Here there are two possibilities:
+			// 1- The user sent the request twice (initiator = f.initiator)
+			// 2- The receiver has already sent a request (initiator = f.receiver), in which case, we just want to accept it
 		} else if f.GetStatus() == value.FriendshipStatusPending {
-			return domain_errors.FriendRequestAlreadySentError{
-				Initiator: strconv.Itoa(initiator),
-				Receiver:  strconv.Itoa(receiver),
+
+			if initiator == f.Receiver {
+
+				// Accept request
+				return s.AcceptFriendRequest(ctx, initiator, receiver)
+
+			} else {
+
+				return domain_errors.FriendRequestAlreadySentError{
+					Initiator: strconv.Itoa(initiator),
+					Receiver:  strconv.Itoa(receiver),
+				}
 			}
+
 		} else if f.GetStatus() == value.FriendshipStatusDeclined {
 			// If the request was declined, we can allow sending a new friend request
-			// but we delete the old declined request
-			if err := s.friendshipRepository.UpdateFriendshipStatus(ctx, initiator, receiver, value.FriendshipStatusPending); err != nil {
-				return err
-			}
+			// but we "delete" the old declined request
+			return s.friendshipRepository.UpdateFriendshipStatus(ctx, initiator, receiver, value.FriendshipStatusPending)
 		}
 	}
 
@@ -63,6 +80,8 @@ func (s *FriendshipService) SendFriendRequest(ctx context.Context, initiator int
 		return err
 	}
 
+	// TODO: Verificar com um check "allowsFriendRequests"
+
 	if r == nil {
 		return domain_errors.UserNotFoundError{
 			UserID: strconv.Itoa(receiver),
@@ -75,17 +94,10 @@ func (s *FriendshipService) SendFriendRequest(ctx context.Context, initiator int
 		}
 	}
 
-	if receiver == initiator {
-		return domain_errors.CannotFriendYourselfError{}
-	}
-
 	friendship := domain.NewFriendRequest(initiator, receiver)
 	return s.friendshipRepository.CreateFriendship(ctx, friendship)
 }
 
-// TODO: For accepting and declining, we should also check if the user is the receiver of the request,
-// otherwise we might have a security issue where a user can accept or decline friend requests that are not meant for them
-// but we need auth for that
 func (s *FriendshipService) AcceptFriendRequest(ctx context.Context, initiator int, receiver int) error {
 
 	// Check if friend request exists
@@ -99,6 +111,10 @@ func (s *FriendshipService) AcceptFriendRequest(ctx context.Context, initiator i
 
 	if f.Status != value.FriendshipStatusPending {
 		return domain_errors.CantOperateOnNonPendingRequestError{}
+	}
+
+	if receiver != f.Receiver {
+		return domain_errors.CannotAcceptAlienRequest{}
 	}
 
 	return s.friendshipRepository.UpdateFriendshipStatus(ctx, initiator, receiver, value.FriendshipStatusAccepted)
@@ -118,13 +134,22 @@ func (s *FriendshipService) DeclineFriendRequest(ctx context.Context, initiator 
 		return domain_errors.CantOperateOnNonPendingRequestError{}
 	}
 
+	if receiver != f.Receiver {
+		return domain_errors.CannotAcceptAlienRequest{}
+	}
+
 	return s.friendshipRepository.UpdateFriendshipStatus(ctx, initiator, receiver, value.FriendshipStatusDeclined)
 }
 
 func (s *FriendshipService) BlockUser(ctx context.Context, initiator int, receiver int) error {
 
+	f, err := s.friendshipRepository.GetFriendship(ctx, initiator, receiver)
+	if err != nil && !errors.Is(err, domain_errors.UserNotFoundError{}) {
+		return err
+	}
+
 	// If not friends, create a new blocked relationship
-	if _, err := s.friendshipRepository.GetFriendship(ctx, initiator, receiver); err != nil {
+	if f == nil {
 		friendship := domain.NewBlockedUser(initiator, receiver)
 		return s.friendshipRepository.CreateFriendship(ctx, friendship)
 	}
@@ -135,10 +160,10 @@ func (s *FriendshipService) BlockUser(ctx context.Context, initiator int, receiv
 
 	return s.friendshipRepository.UpdateFriendshipStatus(ctx, initiator, receiver, value.FriendshipStatusBlocked)
 }
-func (s *FriendshipService) GetFriendList(ctx context.Context, userId int) ([]domain.User, error) {
-	friends, err := s.friendshipRepository.GetFriends(ctx, userId)
+func (s *FriendshipService) GetFriendList(ctx context.Context, userId int, pageNumber, pageSize int) ([]domain.User, utils.Pagination, error) {
+	friends, pagination, err := s.friendshipRepository.GetFriends(ctx, userId, pageNumber, pageSize)
 	if err != nil {
-		return nil, err
+		return nil, utils.Pagination{}, err
 	}
 
 	// Get friend details
@@ -148,19 +173,19 @@ func (s *FriendshipService) GetFriendList(ctx context.Context, userId int) ([]do
 		var f *domain.User
 		f, err = s.userRepository.GetUserById(ctx, friendId)
 		if err != nil {
-			return nil, err
+			return nil, utils.Pagination{}, err
 		}
 
 		friendDetails[i] = *f
 	}
 
-	return friendDetails, nil
+	return friendDetails, pagination, nil
 }
 
-func (s *FriendshipService) GetPendingFriendRequests(ctx context.Context, userId int) ([]domain.User, error) {
-	requests, err := s.friendshipRepository.GetPendingFriendRequests(ctx, userId)
+func (s *FriendshipService) GetPendingFriendRequests(ctx context.Context, userId int, pageNumber, pageSize int) ([]domain.User, utils.Pagination, error) {
+	requests, pagination, err := s.friendshipRepository.GetPendingFriendRequests(ctx, userId, pageNumber, pageSize)
 	if err != nil {
-		return nil, err
+		return nil, utils.Pagination{}, err
 	}
 
 	// Get request details
@@ -170,22 +195,17 @@ func (s *FriendshipService) GetPendingFriendRequests(ctx context.Context, userId
 		var r *domain.User
 		r, err = s.userRepository.GetUserById(ctx, requestId)
 		if err != nil {
-			return nil, err
+			return nil, utils.Pagination{}, err
 		}
 
 		requestDetails[i] = *r
 	}
 
-	return requestDetails, nil
+	return requestDetails, pagination, nil
 }
 
 func (s *FriendshipService) AreFriends(ctx context.Context, userA int, userB int) (bool, error) {
 	f, err := s.friendshipRepository.GetFriendship(ctx, userA, userB)
-	if err == nil && f != nil && f.GetStatus() == value.FriendshipStatusAccepted {
-		return true, nil
-	}
-
-	f, err = s.friendshipRepository.GetFriendship(ctx, userB, userA)
 	if err == nil && f != nil && f.GetStatus() == value.FriendshipStatusAccepted {
 		return true, nil
 	}

@@ -46,7 +46,7 @@ func (ac *AnimeController) SearchAnime(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get pagination parameters with defaults
-	pageNumber := 0
+	pageNumber := 1
 	pageSize := 50
 
 	if pageStr := r.URL.Query().Get("pageNumber"); pageStr != "" {
@@ -59,6 +59,10 @@ func (ac *AnimeController) SearchAnime(w http.ResponseWriter, r *http.Request) {
 		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 {
 			pageSize = s
 		}
+	}
+
+	if pageSize > 50 {
+		pageSize = 50
 	}
 
 	animes, pagination, err := ac.animeService.FetchAnimeFromQuery(query, pageNumber, pageSize)
@@ -81,7 +85,7 @@ func (ac *AnimeController) SearchAnime(w http.ResponseWriter, r *http.Request) {
 
 func (ac *AnimeController) GetAnimeThisSeason(w http.ResponseWriter, r *http.Request) {
 
-	pageNumber := 0
+	pageNumber := 1
 	pageSize := 50
 
 	if pageStr := r.URL.Query().Get("pageNumber"); pageStr != "" {
@@ -125,7 +129,7 @@ func (ac *AnimeController) GetAnimeByStudioID(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	pageNumber := 0
+	pageNumber := 1
 	pageSize := 50
 
 	if pageStr := r.URL.Query().Get("pageNumber"); pageStr != "" {
@@ -171,7 +175,7 @@ func (ac *AnimeController) GetAnimeByProducerID(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	pageNumber := 0
+	pageNumber := 1
 	pageSize := 50
 
 	if pageStr := r.URL.Query().Get("pageNumber"); pageStr != "" {
@@ -217,7 +221,7 @@ func (ac *AnimeController) GetAnimeByLicensorID(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	pageNumber := 0
+	pageNumber := 1
 	pageSize := 50
 
 	if pageStr := r.URL.Query().Get("pageNumber"); pageStr != "" {
