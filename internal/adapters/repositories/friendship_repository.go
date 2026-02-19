@@ -40,16 +40,15 @@ func (r *FriendshipRepository) GetFriendship(ctx context.Context, initiator int,
 	return &friendship, nil
 }
 
-func (r *FriendshipRepository) UpdateFriendshipStatus(ctx context.Context, initiator int, receiver int, status value.FriendshipStatus) error {
+func (r *FriendshipRepository) UpdateFriendship(ctx context.Context, f *domain.Friendship) error {
 	_, err := r.collection.UpdateOne(ctx, bson.M{
-		"initiator": initiator,
-		"receiver":  receiver,
+		"initiator": f.Initiator,
+		"receiver":  f.Receiver,
 	}, bson.M{
 		"$set": bson.M{
-			"status": status,
+			"status": f.Status,
 		},
 	})
-
 	return err
 }
 

@@ -155,16 +155,12 @@ func (r *DescriptionTranslationRepository) GetPendingTranslations(
 	}, nil
 }
 
-func (r *DescriptionTranslationRepository) UpdateTranslationStatus(
-	ctx context.Context,
-	id int,
-	status value.DescriptionTranslationStatus,
-	moderatorID *int,
-) error {
-	_, err := r.collection.UpdateOne(ctx, bson.M{"_id": id}, bson.M{
+func (r *DescriptionTranslationRepository) UpdateTranslation(ctx context.Context, t *domain.DescriptionTranslation) error {
+	_, err := r.collection.UpdateOne(ctx, bson.M{"_id": t.ID}, bson.M{
 		"$set": bson.M{
-			"status":      status,
-			"accepted_by": moderatorID,
+			"status":      t.TranslationStatus,
+			"accepted_by": t.AcceptedBy,
+			"accepted_at": t.AcceptedAt,
 		},
 	})
 	return err

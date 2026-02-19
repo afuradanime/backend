@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/afuradanime/backend/internal/core/domain"
-	"github.com/afuradanime/backend/internal/core/domain/value"
 	"github.com/afuradanime/backend/internal/core/utils"
 )
 
@@ -15,7 +14,7 @@ type DescriptionTranslationRepository interface {
 	GetTranslationByAnimeFromUser(ctx context.Context, anime int, id int) (*domain.DescriptionTranslation, error)
 	GetPendingTranslations(ctx context.Context, pageNumber, pageSize int) ([]domain.DescriptionTranslation, utils.Pagination, error)
 	GetTranslationsByUser(ctx context.Context, userID int, pageNumber, pageSize int) ([]domain.DescriptionTranslation, utils.Pagination, error)
-	UpdateTranslationStatus(ctx context.Context, id int, status value.DescriptionTranslationStatus, moderatorID *int) error
+	UpdateTranslation(ctx context.Context, t *domain.DescriptionTranslation) error
 	DeleteTranslation(ctx context.Context, id int) error // Reject
 }
 

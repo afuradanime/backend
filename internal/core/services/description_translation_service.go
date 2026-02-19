@@ -62,7 +62,8 @@ func (s *DescriptionTranslationService) SubmitTranslation(ctx context.Context, a
 
 	// Good job
 	if !slices.Contains(translator.Badges, value.UserBadgeTranslator) {
-		_ = s.userRepository.AddBadge(ctx, createdBy, value.UserBadgeTranslator)
+		translator.RewardBadge(value.UserBadgeTranslator)
+		_ = s.userRepository.UpdateUser(ctx, translator)
 	}
 
 	translation := domain.NewDescriptionTranslation(animeID, translatedDescription, createdBy)
@@ -86,29 +87,22 @@ func (s *DescriptionTranslationService) GetPendingTranslations(ctx context.Conte
 }
 
 func (s *DescriptionTranslationService) AcceptTranslation(ctx context.Context, id int, moderatorID int) error {
-
 	t, err := s.translationRepository.GetTranslationByID(ctx, id)
 	if err != nil || t == nil {
 		return domain_errors.TranslationNotFoundError{}
 	}
 
-	if !t.IsPending() {
-		return domain_errors.TranslationNotPendingError{}
+	if err := t.Accept(moderatorID); err != nil {
+		return err
 	}
 
-	t.Accept(moderatorID)
-	return s.translationRepository.UpdateTranslationStatus(ctx, id, t.TranslationStatus, t.AcceptedBy)
+	return s.translationRepository.UpdateTranslation(ctx, t)
 }
 
 func (s *DescriptionTranslationService) RejectTranslation(ctx context.Context, id int, moderatorID int) error {
-
 	t, err := s.translationRepository.GetTranslationByID(ctx, id)
 	if err != nil || t == nil {
 		return domain_errors.TranslationNotFoundError{}
-	}
-
-	if !t.IsPending() {
-		return domain_errors.TranslationNotPendingError{}
 	}
 
 	return s.translationRepository.DeleteTranslation(ctx, id)

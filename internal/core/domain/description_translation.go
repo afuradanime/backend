@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/afuradanime/backend/internal/core/domain/value"
+	domain_errors "github.com/afuradanime/backend/internal/core/errors"
 )
 
 type DescriptionTranslation struct {
@@ -35,11 +36,15 @@ func NewDescriptionTranslation(animeID int, translatedDescription string, create
 	}
 }
 
-func (t *DescriptionTranslation) Accept(moderatorID int) {
+func (t *DescriptionTranslation) Accept(moderatorID int) error {
+	if !t.IsPending() {
+		return domain_errors.TranslationNotPendingError{}
+	}
 	now := time.Now()
 	t.AcceptedBy = &moderatorID
 	t.AcceptedAt = &now
 	t.TranslationStatus = value.DescriptionTranslationApproved
+	return nil
 }
 
 func (t *DescriptionTranslation) IsPending() bool {

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/afuradanime/backend/internal/core/domain/value"
+	domain_errors "github.com/afuradanime/backend/internal/core/errors"
 )
 
 type Friendship struct {
@@ -33,18 +34,29 @@ func NewBlockedUser(initiator int, receiver int) *Friendship {
 	}
 }
 
-func (f *Friendship) Accept() {
-	f.Status = value.FriendshipStatusAccepted
-}
-
-func (f *Friendship) Decline() {
-	f.Status = value.FriendshipStatusDeclined
-}
-
-func (f *Friendship) Block() {
+func (f *Friendship) Block() error {
+	if f.Status == value.FriendshipStatusBlocked {
+		return domain_errors.AlreadyBlocked{}
+	}
 	f.Status = value.FriendshipStatusBlocked
+	return nil
 }
 
+func (f *Friendship) Accept() error {
+	if f.Status != value.FriendshipStatusPending {
+		return domain_errors.CantOperateOnNonPendingRequestError{}
+	}
+	f.Status = value.FriendshipStatusAccepted
+	return nil
+}
+
+func (f *Friendship) Decline() error {
+	if f.Status != value.FriendshipStatusPending {
+		return domain_errors.CantOperateOnNonPendingRequestError{}
+	}
+	f.Status = value.FriendshipStatusDeclined
+	return nil
+}
 func (f *Friendship) GetStatus() value.FriendshipStatus {
 	return f.Status
 }

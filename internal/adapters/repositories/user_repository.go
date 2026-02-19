@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/afuradanime/backend/internal/core/domain"
-	"github.com/afuradanime/backend/internal/core/domain/value"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -103,49 +102,26 @@ func (r *UserRepository) CreateUser(ctx context.Context, user *domain.User) (*do
 	return user, err
 }
 
-func (r *UserRepository) UpdatePersonalInfo(
-	ctx context.Context,
-	id int,
-	user *domain.User,
-) error {
-
+func (r *UserRepository) UpdateUser(ctx context.Context, user *domain.User) error {
 	_, err := r.collection.UpdateOne(
 		ctx,
-		bson.M{"_id": id},
+		bson.M{"_id": user.ID},
 		bson.M{"$set": bson.M{
 			"email":                  user.Email,
 			"username":               user.Username,
+			"avatar_url":             user.AvatarURL,
 			"location":               user.Location,
+			"birthday":               user.Birthday,
 			"pronouns":               user.Pronouns,
 			"socials":                user.Socials,
 			"allows_friend_requests": user.AllowsFriendRequests,
 			"allows_recommendations": user.AllowsRecommendations,
+			"can_post":               user.CanPost,
+			"can_translate":          user.CanTranslate,
+			"roles":                  user.Roles,
+			"badges":                 user.Badges,
+			"last_login":             user.LastLogin,
 		}},
-	)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (r *UserRepository) UpdateLastLogin(ctx context.Context, id int) error {
-	_, err := r.collection.UpdateOne(
-		ctx,
-		bson.M{"_id": id},
-		bson.M{"$set": bson.M{
-			"last_login": time.Now(),
-		}},
-	)
-	return err
-}
-
-func (r *UserRepository) AddBadge(ctx context.Context, id int, badge value.UserBadges) error {
-	_, err := r.collection.UpdateOne(
-		ctx,
-		bson.M{"_id": id},
-		bson.M{"$addToSet": bson.M{"badges": badge}},
 	)
 	return err
 }
