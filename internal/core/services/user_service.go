@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"strconv"
+	"time"
 
 	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/domain/value"
@@ -46,7 +47,7 @@ func (s *UserService) RegisterUser(ctx context.Context, user *domain.User) (*dom
 	return added_user, nil
 }
 
-func (s *UserService) UpdatePersonalInfo(ctx context.Context, id int, email *string, username *string, location *string, pronouns *string, socials *[]string, allowsFR, allowsRec *bool) error {
+func (s *UserService) UpdatePersonalInfo(ctx context.Context, id int, email *string, username *string, location *string, pronouns *string, socials *[]string, birthday *time.Time, allowsFR, allowsRec *bool) error {
 	user, err := s.GetUserByID(ctx, id)
 	if err != nil || user == nil {
 		return err
@@ -69,7 +70,12 @@ func (s *UserService) UpdatePersonalInfo(ctx context.Context, id int, email *str
 		user.UpdatePronouns(*pronouns)
 	}
 	if socials != nil {
-		user.UpdateSocials(*socials)
+		if err := user.UpdateSocials(*socials); err != nil {
+			return err
+		}
+	}
+	if birthday != nil {
+		user.UpdateBirthday(*birthday)
 	}
 	if allowsFR != nil {
 		user.UpdateAllowsFriendRequests(*allowsFR)

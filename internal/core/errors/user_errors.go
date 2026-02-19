@@ -13,3 +13,9 @@ type UserCantTranslate struct{}
 func (e UserCantTranslate) Error() string {
 	return "You are not allowed to translate"
 }
+
+type TooManySocials struct{}
+
+func (e TooManySocials) Error() string {
+	return "You can only have 5 social links"
+}

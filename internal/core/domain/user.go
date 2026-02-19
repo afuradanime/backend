@@ -6,7 +6,10 @@ import (
 	"time"
 
 	value "github.com/afuradanime/backend/internal/core/domain/value"
+	domain_errors "github.com/afuradanime/backend/internal/core/errors"
 )
+
+const MAX_SOCIALS = 5
 
 type User struct {
 	ID int `json:"ID" bson:"_id"`
@@ -104,8 +107,14 @@ func (u *User) UpdatePronouns(pronouns string) {
 	u.Pronouns = pronouns
 }
 
-func (u *User) UpdateSocials(socials []string) {
+func (u *User) UpdateSocials(socials []string) error {
+
+	if len(socials) > MAX_SOCIALS {
+		return domain_errors.TooManySocials{}
+	}
+
 	u.Socials = socials
+	return nil
 }
 
 func (u *User) UpdateAllowsFriendRequests(allows bool) {

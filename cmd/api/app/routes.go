@@ -81,7 +81,7 @@ func (a *Application) BootstrapUserModule() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/", userController.GetUsers)
 	r.Get("/{id}", userController.GetUserByID)
-	r.Put("/{id}", userController.UpdateUserInfo)
+	r.Put("/", userController.UpdateUserInfo)
 
 	return r
 }
