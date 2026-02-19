@@ -54,11 +54,13 @@ func (uc *UserController) UpdateUserInfo(w http.ResponseWriter, r *http.Request)
 	}
 
 	var updateData struct {
-		Email    *string   `json:"email"`
-		Username *string   `json:"username"`
-		Location *string   `json:"location"`
-		Pronouns *string   `json:"pronouns"`
-		Socials  *[]string `json:"socials"`
+		Email                 *string   `json:"email"`
+		Username              *string   `json:"username"`
+		Location              *string   `json:"location"`
+		Pronouns              *string   `json:"pronouns"`
+		Socials               *[]string `json:"socials"`
+		AllowsFriendRequests  *bool     `json:"allows_friend_requests"`
+		AllowsRecommendations *bool     `json:"allows_recommendations"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&updateData); err != nil {
@@ -66,7 +68,7 @@ func (uc *UserController) UpdateUserInfo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	err = uc.userService.UpdatePersonalInfo(r.Context(), id, updateData.Email, updateData.Username, updateData.Location, updateData.Pronouns, updateData.Socials)
+	err = uc.userService.UpdatePersonalInfo(r.Context(), id, updateData.Email, updateData.Username, updateData.Location, updateData.Pronouns, updateData.Socials, updateData.AllowsFriendRequests, updateData.AllowsRecommendations)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

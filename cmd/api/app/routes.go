@@ -51,8 +51,9 @@ func (a *Application) InitRoutes(r *chi.Mux) {
 
 func (a *Application) BootstrapTranslationsModule() chi.Router {
 	translationRepo := repositories.NewDescriptionTranslationRepository(a.Mongo)
+	userRepo := repositories.NewUserRepository(a.Mongo)
 	animeRepo := repositories.NewAnimeRepository()
-	translationService := services.NewDescriptionTranslationService(translationRepo, animeRepo)
+	translationService := services.NewDescriptionTranslationService(translationRepo, animeRepo, userRepo)
 	translationController := controllers.NewDescriptionTranslationController(translationService)
 
 	r := chi.NewRouter()

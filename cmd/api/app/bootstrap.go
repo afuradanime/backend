@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"time"
 
 	"github.com/afuradanime/backend/internal/adapters/repositories"
 	"github.com/afuradanime/backend/internal/core/domain"
@@ -69,6 +68,7 @@ func BootstrapUsers(ctx context.Context, userRepo *repositories.UserRepository) 
 	userTaiko.AddRole(value.UserRoleAdmin)
 
 	userTaiko.UpdateAvatarURL("/pfps/e59084c01caf44df3c240a3c78009d080ea02556.png")
+	userTaiko.RewardBadge(value.UserBadgeSuperMegaIllyaFan)
 
 	// Create user and get auto-generated ID
 	_, err = userRepo.CreateUser(ctx, userTaiko)
@@ -77,17 +77,16 @@ func BootstrapUsers(ctx context.Context, userRepo *repositories.UserRepository) 
 	}
 	taikoID = userTaiko.ID
 
-	userTest, err := domain.NewUser("Teste", "teste@mail.teste")
+	userTest, err := domain.NewUser("Afuradanime", "teste@mail.teste")
 	if err != nil {
 		panic(err)
 	}
 
-	userTest.UpdateLocation("Porto")
-	userTest.UpdateSocials([]string{
-		"https://x.com/Teste",
-	})
-	userTest.UpdateBirthday(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC))
-	userTest.UpdatePronouns("user/teste")
+	userTest.UpdateLocation("Afurada")
+	userTest.UpdateAllowsFriendRequests(false)
+	userTest.UpdateAllowsRecommendations(false)
+
+	userTest.RewardBadge(value.UserBadgeBrand)
 
 	// Create user and get auto-generated ID
 	_, err = userRepo.CreateUser(ctx, userTest)

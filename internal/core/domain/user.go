@@ -23,14 +23,17 @@ type User struct {
 	Socials  []string  `json:"Socials" bson:"socials"`
 
 	// Rights
-	AllowsFriendRequests bool `json:"AllowsFriendRequests" bson:"allows_friend_requests"`
-	CanPost              bool `json:"CanPost" bson:"can_post"`
-	CanTranslate         bool `json:"CanTranslate" bson:"can_translate"`
+	AllowsFriendRequests  bool `json:"AllowsFriendRequests" bson:"allows_friend_requests"`
+	AllowsRecommendations bool `json:"AllowsRecommendations" bson:"allows_recommendations"`
+	CanPost               bool `json:"CanPost" bson:"can_post"`
+	CanTranslate          bool `json:"CanTranslate" bson:"can_translate"`
 
 	// Authentication / Authorization
 	Provider   string           `json:"Provider" bson:"provider"`
 	ProviderID string           `json:"ProviderID" bson:"provider_id"`
 	Roles      []value.UserRole `json:"Roles" bson:"roles"`
+
+	Badges []value.UserBadges `json:"Badges" bson:"badges"`
 
 	CreatedAt time.Time `json:"CreatedAt" bson:"created_at"`
 	LastLogin time.Time `json:"LastLogin" bson:"last_login"`
@@ -51,12 +54,15 @@ func NewUser(username string, email string) (*User, error) {
 
 	return &User{
 		// ID will be set by mongo auto-increment
-		Username:             *newUsername,
-		Email:                *newEmail,
-		Roles:                []value.UserRole{value.UserRoleUser},
-		AllowsFriendRequests: true,
-		CanPost:              true,
-		CreatedAt:            time.Now(),
+		Username:              *newUsername,
+		Email:                 *newEmail,
+		Roles:                 []value.UserRole{value.UserRoleUser},
+		AllowsFriendRequests:  true,
+		AllowsRecommendations: true,
+		CanPost:               true,
+		CanTranslate:          true,
+		Badges:                make([]value.UserBadges, 0),
+		CreatedAt:             time.Now(),
 	}, nil
 }
 
@@ -100,6 +106,23 @@ func (u *User) UpdatePronouns(pronouns string) {
 
 func (u *User) UpdateSocials(socials []string) {
 	u.Socials = socials
+}
+
+func (u *User) UpdateAllowsFriendRequests(allows bool) {
+	u.AllowsFriendRequests = allows
+}
+
+func (u *User) UpdateAllowsRecommendations(allows bool) {
+	u.AllowsRecommendations = allows
+}
+
+func (u *User) RewardBadge(badge value.UserBadges) {
+
+	if slices.Contains(u.Badges, badge) {
+		return
+	}
+
+	u.Badges = append(u.Badges, badge)
 }
 
 func (u *User) AddRole(role value.UserRole) {

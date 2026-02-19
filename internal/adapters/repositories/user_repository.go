@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/afuradanime/backend/internal/core/domain"
+	"github.com/afuradanime/backend/internal/core/domain/value"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -112,11 +113,13 @@ func (r *UserRepository) UpdatePersonalInfo(
 		ctx,
 		bson.M{"_id": id},
 		bson.M{"$set": bson.M{
-			"email":    user.Email,
-			"username": user.Username,
-			"location": user.Location,
-			"pronouns": user.Pronouns,
-			"socials":  user.Socials,
+			"email":                  user.Email,
+			"username":               user.Username,
+			"location":               user.Location,
+			"pronouns":               user.Pronouns,
+			"socials":                user.Socials,
+			"allows_friend_requests": user.AllowsFriendRequests,
+			"allows_recommendations": user.AllowsRecommendations,
 		}},
 	)
 
@@ -134,6 +137,15 @@ func (r *UserRepository) UpdateLastLogin(ctx context.Context, id int) error {
 		bson.M{"$set": bson.M{
 			"last_login": time.Now(),
 		}},
+	)
+	return err
+}
+
+func (r *UserRepository) AddBadge(ctx context.Context, id int, badge value.UserBadges) error {
+	_, err := r.collection.UpdateOne(
+		ctx,
+		bson.M{"_id": id},
+		bson.M{"$addToSet": bson.M{"badges": badge}},
 	)
 	return err
 }

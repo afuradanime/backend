@@ -2,9 +2,11 @@ package services
 
 import (
 	"context"
+	"slices"
 	"strconv"
 
 	"github.com/afuradanime/backend/internal/core/domain"
+	"github.com/afuradanime/backend/internal/core/domain/value"
 	domain_errors "github.com/afuradanime/backend/internal/core/errors"
 	"github.com/afuradanime/backend/internal/core/interfaces"
 	"github.com/afuradanime/backend/internal/core/utils"
@@ -13,15 +15,18 @@ import (
 type DescriptionTranslationService struct {
 	translationRepository interfaces.DescriptionTranslationRepository
 	animeRepository       interfaces.AnimeRepository
+	userRepository        interfaces.UserRepository
 }
 
 func NewDescriptionTranslationService(
 	translationRepo interfaces.DescriptionTranslationRepository,
 	animeRepo interfaces.AnimeRepository,
+	userRepo interfaces.UserRepository,
 ) *DescriptionTranslationService {
 	return &DescriptionTranslationService{
 		translationRepository: translationRepo,
 		animeRepository:       animeRepo,
+		userRepository:        userRepo,
 	}
 }
 
@@ -43,6 +48,21 @@ func (s *DescriptionTranslationService) SubmitTranslation(ctx context.Context, a
 	trans, _ = s.translationRepository.GetTranslationByAnimeFromUser(ctx, animeID, createdBy)
 	if trans != nil {
 		return domain_errors.AlreadySubmittedTranslation{}
+	}
+
+	// Check if user exists and can translate
+	translator, err := s.userRepository.GetUserById(ctx, createdBy)
+	if err != nil {
+		return domain_errors.UserNotFoundError{}
+	}
+
+	if !translator.CanTranslate {
+		return domain_errors.UserCantTranslate{}
+	}
+
+	// Good job
+	if !slices.Contains(translator.Badges, value.UserBadgeTranslator) {
+		_ = s.userRepository.AddBadge(ctx, createdBy, value.UserBadgeTranslator)
 	}
 
 	translation := domain.NewDescriptionTranslation(animeID, translatedDescription, createdBy)

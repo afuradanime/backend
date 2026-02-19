@@ -43,7 +43,7 @@ func (s *UserService) RegisterUser(ctx context.Context, user *domain.User) (*dom
 	return added_user, nil
 }
 
-func (s *UserService) UpdatePersonalInfo(ctx context.Context, id int, email *string, username *string, location *string, pronouns *string, socials *[]string) error {
+func (s *UserService) UpdatePersonalInfo(ctx context.Context, id int, email *string, username *string, location *string, pronouns *string, socials *[]string, allowsFR, allowsRec *bool) error {
 
 	user, err := s.GetUserByID(ctx, id)
 	if err != nil {
@@ -75,6 +75,14 @@ func (s *UserService) UpdatePersonalInfo(ctx context.Context, id int, email *str
 
 	if socials != nil {
 		user.UpdateSocials(*socials)
+	}
+
+	if allowsFR != nil {
+		user.UpdateAllowsFriendRequests(*allowsFR)
+	}
+
+	if allowsRec != nil {
+		user.UpdateAllowsRecommendations(*allowsRec)
 	}
 
 	return s.userRepository.UpdatePersonalInfo(ctx, id, user)
