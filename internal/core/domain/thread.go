@@ -1,6 +1,18 @@
 package domain
 
-import "github.com/afuradanime/backend/internal/core/utils"
+import (
+	"time"
+
+	"github.com/afuradanime/backend/internal/core/utils"
+)
+
+type ContextType string
+
+const (
+	ContextTypeProfile ContextType = "Profile"
+	ContextTypeAnimeOp ContextType = "AnimeOpinion"
+	ContextTypeForum   ContextType = "Forum"
+)
 
 // Thread "holder" that knows the context that the thread is related to
 type ThreadContext struct {
@@ -10,8 +22,8 @@ type ThreadContext struct {
 	ContextId int    `bson:"contextId"`
 	// The owner of a thread context is an admin unless contextType is "user",
 	// then the owner is the user itself, and only the owner can pin/unpin thread posts
-	ContextType        string  `bson:"contextType"`
-	PinnedThreadPostID *string `bson:"pinnedThreadPostId,omitempty"`
+	ContextType        ContextType `bson:"contextType"`
+	PinnedThreadPostID *string     `bson:"pinnedThreadPostId,omitempty"`
 }
 
 // the actual thread post, that is related to a thread context
@@ -24,7 +36,7 @@ type ThreadPost struct {
 	ReplyTo   *string `bson:"replyTo,omitempty"`
 }
 
-func NewContext(contextId int, contextType string) *ThreadContext {
+func NewContext(contextId int, contextType ContextType) *ThreadContext {
 	return &ThreadContext{
 		ID:          utils.GenerateRandomID(),
 		ContextId:   contextId,
@@ -38,6 +50,7 @@ func NewThreadPost(context int, userId int, content string) *ThreadPost {
 		ContextID: context,
 		UserId:    userId,
 		Content:   content,
+		CreatedAt: time.Now().Unix(),
 	}
 }
 

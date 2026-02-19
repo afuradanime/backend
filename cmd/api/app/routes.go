@@ -45,6 +45,7 @@ func (a *Application) InitRoutes(r *chi.Mux) {
 		r.Use(middlewares.JWTMiddleware(a.JWTConfig))
 		r.Mount("/users", a.BootstrapUserModule())
 		r.Mount("/friends", a.BootstrapFriendsModule())
+		r.Mount("/threads", a.BootstrapThreadModule())
 	})
 }
 
@@ -92,6 +93,20 @@ func (a *Application) BootstrapFriendsModule() chi.Router {
 	r.Get("/{userID}", friendshipController.ListFriends)
 	r.Get("/pending", friendshipController.ListPendingFriendRequests)
 	r.Get("/check/{receiver}", friendshipController.FetchFriendshipStatus)
+
+	return r
+}
+
+func (a *Application) BootstrapThreadModule() chi.Router {
+	threadRepo := repositories.NewThreadRepository(a.Mongo)
+	userRepo := repositories.NewUserRepository(a.Mongo)
+	friendshipRepo := repositories.NewFriendshipRepository(a.Mongo)
+	threadService := services.NewThreadService(threadRepo, userRepo, friendshipRepo)
+	threadController := controllers.NewThreadController(threadService)
+
+	r := chi.NewRouter()
+	r.Get("/{contextId}", threadController.GetThreadPostsByContext)
+	r.Post("/{contextId}/{contextType}", threadController.CreateThreadPost)
 
 	return r
 }
