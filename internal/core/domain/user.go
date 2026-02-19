@@ -12,15 +12,20 @@ type User struct {
 	ID int `json:"ID" bson:"_id"`
 
 	// Identity
-	Email     value.Email   `json:"Email" bson:"email"`
-	Username  value.TinyStr `json:"Username" bson:"username"`
-	AvatarURL string        `json:"AvatarURL" bson:"avatar_url"`
+	Email     value.Email    `json:"Email" bson:"email"`
+	Username  value.Username `json:"Username" bson:"username"`
+	AvatarURL string         `json:"AvatarURL" bson:"avatar_url"`
 
 	// Personal Info
 	Location string    `json:"Location" bson:"location"`
 	Birthday time.Time `json:"Birthday" bson:"birthday"`
 	Pronouns string    `json:"Pronouns" bson:"pronouns"`
 	Socials  []string  `json:"Socials" bson:"socials"`
+
+	// Rights
+	AllowsFriendRequests bool `json:"AllowsFriendRequests" bson:"allows_friend_requests"`
+	CanPost              bool `json:"CanPost" bson:"can_post"`
+	CanTranslate         bool `json:"CanTranslate" bson:"can_translate"`
 
 	// Authentication / Authorization
 	Provider   string           `json:"Provider" bson:"provider"`
@@ -38,7 +43,7 @@ func NewUser(username string, email string) (*User, error) {
 		return nil, err
 	}
 
-	newUsername, err := value.NewTinyStr(username)
+	newUsername, err := value.NewUsername(username)
 
 	if err != nil {
 		return nil, err
@@ -46,10 +51,12 @@ func NewUser(username string, email string) (*User, error) {
 
 	return &User{
 		// ID will be set by mongo auto-increment
-		Username:  *newUsername,
-		Email:     *newEmail,
-		Roles:     []value.UserRole{value.UserRoleUser},
-		CreatedAt: time.Now(),
+		Username:             *newUsername,
+		Email:                *newEmail,
+		Roles:                []value.UserRole{value.UserRoleUser},
+		AllowsFriendRequests: true,
+		CanPost:              true,
+		CreatedAt:            time.Now(),
 	}, nil
 }
 
@@ -63,7 +70,7 @@ func (u *User) UpdateEmail(email string) error {
 }
 
 func (u *User) UpdateUsername(username string) error {
-	newUsername, err := value.NewTinyStr(username)
+	newUsername, err := value.NewUsername(username)
 	if err != nil {
 		return err
 	}

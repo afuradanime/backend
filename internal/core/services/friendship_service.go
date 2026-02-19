@@ -75,7 +75,10 @@ func (s *FriendshipService) SendFriendRequest(ctx context.Context, initiator int
 		return err
 	}
 
-	// TODO: Verificar com um check "allowsFriendRequests"
+	// Check user rights
+	if !r.AllowsFriendRequests {
+		return domain_errors.UserDoesntAllowFriendRequests{}
+	}
 
 	if r == nil {
 		return domain_errors.UserNotFoundError{

@@ -3,8 +3,10 @@ package middlewares
 import (
 	"context"
 	"net/http"
+	"slices"
 
 	"github.com/afuradanime/backend/config"
+	"github.com/afuradanime/backend/internal/core/domain/value"
 	"github.com/afuradanime/backend/internal/core/utils"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -15,6 +17,30 @@ const (
 	UserIDKey    contextKey = "userID"
 	UserRolesKey contextKey = "userRoles"
 )
+
+func GetUserIDFromContext(r *http.Request) (int, bool) {
+	userID, ok := r.Context().Value(UserIDKey).(int)
+	return userID, ok
+}
+
+func GetUserRolesFromContext(r *http.Request) ([]value.UserRole, bool) {
+	roles, ok := r.Context().Value(UserRolesKey).(string)
+	if !ok {
+		return nil, ok
+	}
+
+	return utils.DecodeRoleList(roles), ok
+}
+
+func IsLoggedUserOfRole(r *http.Request, role value.UserRole) bool {
+
+	roles, ok := GetUserRolesFromContext(r)
+	if !ok {
+		return false
+	}
+
+	return slices.Contains(roles, role)
+}
 
 func JWTMiddleware(cfg *config.JWTConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {

@@ -28,7 +28,7 @@ func (ac *AnimeController) GetAnimeByID(w http.ResponseWriter, r *http.Request) 
 	}
 
 	anime, err := ac.animeService.FetchAnimeByID(uint32(id))
-	if err != nil { // TODO: Proper error handling here, with different status codes!
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
@@ -38,32 +38,8 @@ func (ac *AnimeController) GetAnimeByID(w http.ResponseWriter, r *http.Request) 
 }
 
 func (ac *AnimeController) SearchAnime(w http.ResponseWriter, r *http.Request) {
-	// Get query parameter
 	query := r.URL.Query().Get("q")
-	// if query == "" {
-	// 	http.Error(w, "Query parameter 'q' is required", http.StatusBadRequest)
-	// 	return
-	// }
-
-	// Get pagination parameters with defaults
-	pageNumber := 1
-	pageSize := 50
-
-	if pageStr := r.URL.Query().Get("pageNumber"); pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p >= 0 {
-			pageNumber = p
-		}
-	}
-
-	if sizeStr := r.URL.Query().Get("pageSize"); sizeStr != "" {
-		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 {
-			pageSize = s
-		}
-	}
-
-	if pageSize > 50 {
-		pageSize = 50
-	}
+	pageNumber, pageSize := utils.GetPaginationParams(r, 50)
 
 	animes, pagination, err := ac.animeService.FetchAnimeFromQuery(query, pageNumber, pageSize)
 	if err != nil {
@@ -71,38 +47,18 @@ func (ac *AnimeController) SearchAnime(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := struct {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(struct {
 		Animes     []*domain.Anime  `json:"animes"`
 		Pagination utils.Pagination `json:"pagination"`
 	}{
 		Animes:     animes,
 		Pagination: pagination,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	})
 }
 
 func (ac *AnimeController) GetAnimeThisSeason(w http.ResponseWriter, r *http.Request) {
-
-	pageNumber := 1
-	pageSize := 50
-
-	if pageStr := r.URL.Query().Get("pageNumber"); pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p >= 0 {
-			pageNumber = p
-		}
-	}
-
-	if sizeStr := r.URL.Query().Get("pageSize"); sizeStr != "" {
-		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 {
-			pageSize = s
-		}
-	}
-
-	if pageSize > 50 {
-		pageSize = 50
-	}
+	pageNumber, pageSize := utils.GetPaginationParams(r, 50)
 
 	animes, pagination, err := ac.animeService.FetchAnimeThisSeason(pageNumber, pageSize)
 	if err != nil {
@@ -110,16 +66,14 @@ func (ac *AnimeController) GetAnimeThisSeason(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	response := struct {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(struct {
 		Animes     []*domain.Anime  `json:"animes"`
 		Pagination utils.Pagination `json:"pagination"`
 	}{
 		Animes:     animes,
 		Pagination: pagination,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	})
 }
 
 func (ac *AnimeController) GetAnimeByStudioID(w http.ResponseWriter, r *http.Request) {
@@ -129,24 +83,7 @@ func (ac *AnimeController) GetAnimeByStudioID(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	pageNumber := 1
-	pageSize := 50
-
-	if pageStr := r.URL.Query().Get("pageNumber"); pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p >= 0 {
-			pageNumber = p
-		}
-	}
-
-	if sizeStr := r.URL.Query().Get("pageSize"); sizeStr != "" {
-		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 {
-			pageSize = s
-		}
-	}
-
-	if pageSize > 50 {
-		pageSize = 50
-	}
+	pageNumber, pageSize := utils.GetPaginationParams(r, 50)
 
 	studio, animes, pagination, err := ac.animeService.FetchStudioByID(uint32(id), pageNumber, pageSize)
 	if err != nil {
@@ -154,7 +91,8 @@ func (ac *AnimeController) GetAnimeByStudioID(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	response := struct {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(struct {
 		Studio     *value.Studio    `json:"studio"`
 		Animes     []*domain.Anime  `json:"animes"`
 		Pagination utils.Pagination `json:"pagination"`
@@ -162,10 +100,7 @@ func (ac *AnimeController) GetAnimeByStudioID(w http.ResponseWriter, r *http.Req
 		Studio:     studio,
 		Animes:     animes,
 		Pagination: pagination,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	})
 }
 
 func (ac *AnimeController) GetAnimeByProducerID(w http.ResponseWriter, r *http.Request) {
@@ -175,24 +110,7 @@ func (ac *AnimeController) GetAnimeByProducerID(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	pageNumber := 1
-	pageSize := 50
-
-	if pageStr := r.URL.Query().Get("pageNumber"); pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p >= 0 {
-			pageNumber = p
-		}
-	}
-
-	if sizeStr := r.URL.Query().Get("pageSize"); sizeStr != "" {
-		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 {
-			pageSize = s
-		}
-	}
-
-	if pageSize > 50 {
-		pageSize = 50
-	}
+	pageNumber, pageSize := utils.GetPaginationParams(r, 50)
 
 	producer, animes, pagination, err := ac.animeService.FetchProducerByID(uint32(id), pageNumber, pageSize)
 	if err != nil {
@@ -200,7 +118,8 @@ func (ac *AnimeController) GetAnimeByProducerID(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	response := struct {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(struct {
 		Producer   *value.Producer  `json:"producer"`
 		Animes     []*domain.Anime  `json:"animes"`
 		Pagination utils.Pagination `json:"pagination"`
@@ -208,10 +127,7 @@ func (ac *AnimeController) GetAnimeByProducerID(w http.ResponseWriter, r *http.R
 		Producer:   producer,
 		Animes:     animes,
 		Pagination: pagination,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	})
 }
 
 func (ac *AnimeController) GetAnimeByLicensorID(w http.ResponseWriter, r *http.Request) {
@@ -221,24 +137,7 @@ func (ac *AnimeController) GetAnimeByLicensorID(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	pageNumber := 1
-	pageSize := 50
-
-	if pageStr := r.URL.Query().Get("pageNumber"); pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p >= 0 {
-			pageNumber = p
-		}
-	}
-
-	if sizeStr := r.URL.Query().Get("pageSize"); sizeStr != "" {
-		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 {
-			pageSize = s
-		}
-	}
-
-	if pageSize > 50 {
-		pageSize = 50
-	}
+	pageNumber, pageSize := utils.GetPaginationParams(r, 50)
 
 	licensor, animes, pagination, err := ac.animeService.FetchLicensorByID(uint32(id), pageNumber, pageSize)
 	if err != nil {
@@ -246,7 +145,8 @@ func (ac *AnimeController) GetAnimeByLicensorID(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	response := struct {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(struct {
 		Licensor   *value.Licensor  `json:"licensor"`
 		Animes     []*domain.Anime  `json:"animes"`
 		Pagination utils.Pagination `json:"pagination"`
@@ -254,8 +154,5 @@ func (ac *AnimeController) GetAnimeByLicensorID(w http.ResponseWriter, r *http.R
 		Licensor:   licensor,
 		Animes:     animes,
 		Pagination: pagination,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	})
 }

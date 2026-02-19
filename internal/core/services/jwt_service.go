@@ -25,6 +25,7 @@ func (s *JWTService) GenerateJWT(user domain.User) (string, error) {
 		"exp":  time.Now().Add(time.Hour * time.Duration(s.conf.ExpirationHours)).Unix(),
 		"role": user.Roles,
 	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(s.conf.Secret))
 }
