@@ -8,7 +8,6 @@ import (
 	"github.com/afuradanime/backend/internal/core/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type FriendshipRepository struct {
@@ -68,102 +67,170 @@ func (r *FriendshipRepository) DeleteFriendship(ctx context.Context, initiator i
 	return err
 }
 
-func (r *FriendshipRepository) GetFriends(ctx context.Context, userId int, pageNumber, pageSize int) ([]int, utils.Pagination, error) {
-
+func (r *FriendshipRepository) GetFriends(ctx context.Context, userId int, pageNumber, pageSize int) ([]domain.User, utils.Pagination, error) {
 	skip := (pageNumber - 1) * pageSize
 
-	filter := bson.M{
+	// Get the friendship list for this user
+	matchStage := bson.D{{Key: "$match", Value: bson.M{
 		"$or": []bson.M{
 			{"initiator": userId},
 			{"receiver": userId},
 		},
 		"status": value.FriendshipStatusAccepted,
-	}
+	}}}
 
-	total, err := r.collection.CountDocuments(ctx, filter)
+	// Chain a lookup to not query twice
+	lookupInitiator := bson.D{{Key: "$lookup", Value: bson.M{
+		"from":         "users",
+		"localField":   "initiator",
+		"foreignField": "_id",
+		"as":           "initiator_user",
+	}}}
+
+	lookupReceiver := bson.D{{Key: "$lookup", Value: bson.M{
+		"from":         "users",
+		"localField":   "receiver",
+		"foreignField": "_id",
+		"as":           "receiver_user",
+	}}}
+
+	// Pick the friend (the one that isn't the requesting user)
+	// Get the friend field based on who initiated,
+	// If initiator = userId, project receiver_user, else project initiator_user
+	addFieldsStage := bson.D{{Key: "$addFields", Value: bson.M{
+		"friend": bson.M{
+			"$cond": bson.M{
+				"if":   bson.M{"$eq": []interface{}{"$initiator", userId}},
+				"then": bson.M{"$arrayElemAt": []interface{}{"$receiver_user", 0}},
+				"else": bson.M{"$arrayElemAt": []interface{}{"$initiator_user", 0}},
+			},
+		},
+	}}}
+
+	// Replace pipeline result with a user document, we don't need the rest
+	replaceRootStage := bson.D{{Key: "$replaceRoot", Value: bson.M{
+		"newRoot": "$friend",
+	}}}
+
+	// Count pipeline
+	countPipeline := mongo.Pipeline{matchStage}
+	countStage := bson.D{{Key: "$count", Value: "total"}}
+	countCursor, err := r.collection.Aggregate(ctx, append(countPipeline, countStage))
+
 	if err != nil {
 		return nil, utils.Pagination{}, err
 	}
 
-	findOptions := options.Find().
-		SetSkip(int64(skip)).
-		SetLimit(int64(pageSize))
+	var countResult []struct {
+		Total int `bson:"total"`
+	}
 
-	// Get friendships where user is initiator or receiver and status is accepted
-	cursor, err := r.collection.Find(ctx, filter, findOptions)
+	if err := countCursor.All(ctx, &countResult); err != nil {
+		return nil, utils.Pagination{}, err
+	}
+
+	total := 0
+	if len(countResult) > 0 {
+		total = countResult[0].Total
+	}
+
+	// Main pipeline
+	skipStage := bson.D{{Key: "$skip", Value: int64(skip)}}
+	limitStage := bson.D{{Key: "$limit", Value: int64(pageSize)}}
+
+	pipeline := mongo.Pipeline{
+		matchStage,
+		lookupInitiator,
+		lookupReceiver,
+		addFieldsStage,
+		replaceRootStage,
+		skipStage,
+		limitStage,
+	}
+
+	cursor, err := r.collection.Aggregate(ctx, pipeline)
 	if err != nil {
 		return nil, utils.Pagination{}, err
 	}
 
-	var friendships []domain.Friendship
-	if err := cursor.All(ctx, &friendships); err != nil {
+	var users []domain.User
+	if err := cursor.All(ctx, &users); err != nil {
 		return nil, utils.Pagination{}, err
 	}
 
-	// Extract friend IDs
-	friendIds := make([]int, len(friendships))
-	for i, f := range friendships {
-		if f.Initiator == userId {
-			friendIds[i] = f.Receiver
-		} else {
-			friendIds[i] = f.Initiator
-		}
-	}
+	totalPages := (total + pageSize - 1) / pageSize
 
-	// Calculate total pages
-	totalPages := int((total + int64(pageSize) - 1) / int64(pageSize))
-
-	return friendIds, utils.Pagination{
+	return users, utils.Pagination{
 		PageNumber: pageNumber,
 		PageSize:   pageSize,
 		TotalPages: totalPages,
 	}, nil
 }
 
-func (r *FriendshipRepository) GetPendingFriendRequests(
-	ctx context.Context,
-	userId int,
-	pageNumber, pageSize int,
-) ([]int, utils.Pagination, error) {
-
+func (r *FriendshipRepository) GetPendingFriendRequests(ctx context.Context, userId int, pageNumber, pageSize int) ([]domain.User, utils.Pagination, error) {
 	skip := (pageNumber - 1) * pageSize
 
-	filter := bson.M{
+	matchStage := bson.D{{Key: "$match", Value: bson.M{
 		"receiver": userId,
 		"status":   value.FriendshipStatusPending,
-	}
+	}}}
 
-	// Count total pending requests
-	total, err := r.collection.CountDocuments(ctx, filter)
+	lookupInitiator := bson.D{{Key: "$lookup", Value: bson.M{
+		"from":         "users",
+		"localField":   "initiator",
+		"foreignField": "_id",
+		"as":           "initiator_user",
+	}}}
+
+	replaceRootStage := bson.D{{Key: "$replaceRoot", Value: bson.M{
+		"newRoot": bson.M{"$arrayElemAt": []interface{}{"$initiator_user", 0}},
+	}}}
+
+	// Count
+	countCursor, err := r.collection.Aggregate(ctx, mongo.Pipeline{
+		matchStage,
+		bson.D{{Key: "$count", Value: "total"}},
+	})
+
 	if err != nil {
 		return nil, utils.Pagination{}, err
 	}
 
-	findOptions := options.Find().
-		SetSkip(int64(skip)).
-		SetLimit(int64(pageSize)).
-		SetSort(bson.M{"_id": -1}) // newest requests first
+	var countResult []struct {
+		Total int `bson:"total"`
+	}
+	if err := countCursor.All(ctx, &countResult); err != nil {
+		return nil, utils.Pagination{}, err
+	}
 
-	cursor, err := r.collection.Find(ctx, filter, findOptions)
+	total := 0
+	if len(countResult) > 0 {
+		total = countResult[0].Total
+	}
+
+	// Main pipeline
+	pipeline := mongo.Pipeline{
+		matchStage,
+		lookupInitiator,
+		replaceRootStage,
+		bson.D{{Key: "$sort", Value: bson.M{"_id": -1}}},
+		bson.D{{Key: "$skip", Value: int64(skip)}},
+		bson.D{{Key: "$limit", Value: int64(pageSize)}},
+	}
+
+	cursor, err := r.collection.Aggregate(ctx, pipeline)
 	if err != nil {
 		return nil, utils.Pagination{}, err
 	}
 
-	var friendships []domain.Friendship
-	if err := cursor.All(ctx, &friendships); err != nil {
+	var users []domain.User
+	if err := cursor.All(ctx, &users); err != nil {
 		return nil, utils.Pagination{}, err
 	}
 
-	// Extract initiator IDs
-	requestIds := make([]int, len(friendships))
-	for i, f := range friendships {
-		requestIds[i] = f.Initiator
-	}
+	totalPages := (total + pageSize - 1) / pageSize
 
-	// Calculate total pages
-	totalPages := int((total + int64(pageSize) - 1) / int64(pageSize))
-
-	return requestIds, utils.Pagination{
+	return users, utils.Pagination{
 		PageNumber: pageNumber,
 		PageSize:   pageSize,
 		TotalPages: totalPages,

@@ -22,6 +22,6 @@ type FriendshipRepository interface {
 	GetFriendship(ctx context.Context, initiator int, receiver int) (*domain.Friendship, error)
 	DeleteFriendship(ctx context.Context, initiator int, receiver int) error
 	UpdateFriendship(ctx context.Context, f *domain.Friendship) error
-	GetFriends(ctx context.Context, userId int, pageNumber, pageSize int) ([]int, utils.Pagination, error)
-	GetPendingFriendRequests(ctx context.Context, userId int, pageNumber, pageSize int) ([]int, utils.Pagination, error)
+	GetFriends(ctx context.Context, userId int, pageNumber, pageSize int) ([]domain.User, utils.Pagination, error)
+	GetPendingFriendRequests(ctx context.Context, userId int, pageNumber, pageSize int) ([]domain.User, utils.Pagination, error)
 }

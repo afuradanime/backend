@@ -155,47 +155,11 @@ func (s *FriendshipService) BlockUser(ctx context.Context, initiator int, receiv
 }
 
 func (s *FriendshipService) GetFriendList(ctx context.Context, userId int, pageNumber, pageSize int) ([]domain.User, utils.Pagination, error) {
-	friends, pagination, err := s.friendshipRepository.GetFriends(ctx, userId, pageNumber, pageSize)
-	if err != nil {
-		return nil, utils.Pagination{}, err
-	}
-
-	// Get friend details
-	friendDetails := make([]domain.User, len(friends))
-	for i, friendId := range friends {
-
-		var f *domain.User
-		f, err = s.userRepository.GetUserById(ctx, friendId)
-		if err != nil {
-			return nil, utils.Pagination{}, err
-		}
-
-		friendDetails[i] = *f
-	}
-
-	return friendDetails, pagination, nil
+	return s.friendshipRepository.GetFriends(ctx, userId, pageNumber, pageSize)
 }
 
 func (s *FriendshipService) GetPendingFriendRequests(ctx context.Context, userId int, pageNumber, pageSize int) ([]domain.User, utils.Pagination, error) {
-	requests, pagination, err := s.friendshipRepository.GetPendingFriendRequests(ctx, userId, pageNumber, pageSize)
-	if err != nil {
-		return nil, utils.Pagination{}, err
-	}
-
-	// Get request details
-	requestDetails := make([]domain.User, len(requests))
-	for i, requestId := range requests {
-
-		var r *domain.User
-		r, err = s.userRepository.GetUserById(ctx, requestId)
-		if err != nil {
-			return nil, utils.Pagination{}, err
-		}
-
-		requestDetails[i] = *r
-	}
-
-	return requestDetails, pagination, nil
+	return s.friendshipRepository.GetPendingFriendRequests(ctx, userId, pageNumber, pageSize)
 }
 
 func (s *FriendshipService) FetchFriendshipStatus(ctx context.Context, userA int, userB int) (*domain.Friendship, error) {

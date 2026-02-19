@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strconv"
 
+	"github.com/afuradanime/backend/internal/adapters/repositories"
 	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/domain/value"
 	domain_errors "github.com/afuradanime/backend/internal/core/errors"
@@ -39,7 +40,7 @@ func (s *DescriptionTranslationService) SubmitTranslation(ctx context.Context, a
 	}
 
 	// Check no translation yet
-	trans, _ := s.translationRepository.GetTranslationByAnime(ctx, animeID)
+	trans, _, _, _ := s.translationRepository.GetTranslationByAnime(ctx, animeID)
 	if trans != nil {
 		return domain_errors.AlreadyTranslatedError{}
 	}
@@ -74,16 +75,25 @@ func (s *DescriptionTranslationService) GetMyTranslations(ctx context.Context, u
 	return s.translationRepository.GetTranslationsByUser(ctx, userID, pageNumber, pageSize)
 }
 
-func (s *DescriptionTranslationService) GetAnimeTranslation(ctx context.Context, animeID int) (*domain.DescriptionTranslation, error) {
-	t, err := s.translationRepository.GetTranslationByAnime(ctx, animeID)
+func (s *DescriptionTranslationService) GetAnimeTranslation(ctx context.Context, animeID int) (*domain.DescriptionTranslation, *domain.User, *domain.User, error) {
+	t, translator, accepter, err := s.translationRepository.GetTranslationByAnime(ctx, animeID)
 	if err != nil {
-		return nil, domain_errors.TranslationNotFoundError{AnimeID: strconv.Itoa(animeID)}
+		return nil, nil, nil, domain_errors.TranslationNotFoundError{AnimeID: strconv.Itoa(animeID)}
 	}
-	return t, nil
+	return t, translator, accepter, nil
 }
 
-func (s *DescriptionTranslationService) GetPendingTranslations(ctx context.Context, pageNumber, pageSize int) ([]domain.DescriptionTranslation, utils.Pagination, error) {
+func (s *DescriptionTranslationService) GetPendingTranslations(ctx context.Context, pageNumber, pageSize int) ([]repositories.PendingTranslationResult, utils.Pagination, error) {
 	return s.translationRepository.GetPendingTranslations(ctx, pageNumber, pageSize)
+}
+
+func (s *DescriptionTranslationService) RejectTranslation(ctx context.Context, id int, moderatorID int) error {
+	t, err := s.translationRepository.GetTranslationByID(ctx, id)
+	if err != nil || t == nil {
+		return domain_errors.TranslationNotFoundError{}
+	}
+
+	return s.translationRepository.DeleteTranslation(ctx, id)
 }
 
 func (s *DescriptionTranslationService) AcceptTranslation(ctx context.Context, id int, moderatorID int) error {
@@ -97,13 +107,4 @@ func (s *DescriptionTranslationService) AcceptTranslation(ctx context.Context, i
 	}
 
 	return s.translationRepository.UpdateTranslation(ctx, t)
-}
-
-func (s *DescriptionTranslationService) RejectTranslation(ctx context.Context, id int, moderatorID int) error {
-	t, err := s.translationRepository.GetTranslationByID(ctx, id)
-	if err != nil || t == nil {
-		return domain_errors.TranslationNotFoundError{}
-	}
-
-	return s.translationRepository.DeleteTranslation(ctx, id)
 }

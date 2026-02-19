@@ -60,14 +60,39 @@ func (c *DescriptionTranslationController) GetAnimeTranslation(w http.ResponseWr
 		return
 	}
 
-	translation, err := c.translationService.GetAnimeTranslation(r.Context(), animeID)
+	translation, translator, accepter, err := c.translationService.GetAnimeTranslation(r.Context(), animeID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(translation)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"translation": translation,
+		"translator":  translator,
+		"accepter":    accepter,
+	})
+}
+
+func (c *DescriptionTranslationController) GetPendingTranslations(w http.ResponseWriter, r *http.Request) {
+	if !middlewares.IsLoggedUserOfRole(r, value.UserRoleModerator) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	pageNumber, pageSize := utils.GetPaginationParams(r, 20)
+
+	results, pagination, err := c.translationService.GetPendingTranslations(r.Context(), pageNumber, pageSize)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"data":       results,
+		"pagination": pagination,
+	})
 }
 
 func (c *DescriptionTranslationController) GetMyTranslations(w http.ResponseWriter, r *http.Request) {
@@ -80,28 +105,6 @@ func (c *DescriptionTranslationController) GetMyTranslations(w http.ResponseWrit
 	pageNumber, pageSize := utils.GetPaginationParams(r, 20)
 
 	translations, pagination, err := c.translationService.GetMyTranslations(r.Context(), userID, pageNumber, pageSize)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data":       translations,
-		"pagination": pagination,
-	})
-}
-
-func (c *DescriptionTranslationController) GetPendingTranslations(w http.ResponseWriter, r *http.Request) {
-
-	if !middlewares.IsLoggedUserOfRole(r, value.UserRoleModerator) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	pageNumber, pageSize := utils.GetPaginationParams(r, 20)
-
-	translations, pagination, err := c.translationService.GetPendingTranslations(r.Context(), pageNumber, pageSize)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
