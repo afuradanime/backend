@@ -11,7 +11,7 @@ type UserService interface {
 	GetUserByID(ctx context.Context, id int) (*domain.User, error)
 	GetUserByProvider(ctx context.Context, provider string, providerID string) (*domain.User, error)
 	RegisterUser(ctx context.Context, user *domain.User) (*domain.User, error)
-	UpdatePersonalInfo(ctx context.Context, id int, email *string, username *string, location *string, pronouns *string, socials *[]string) error
+	UpdatePersonalInfo(ctx context.Context, id int, email *string, username *string, location *string, pronouns *string, socials *[]string, allowsFR, allowsRec *bool) error
 	UpdateLastLogin(ctx context.Context, id int) error
 }
 
@@ -20,6 +20,5 @@ type UserRepository interface {
 	GetUserById(ctx context.Context, id int) (*domain.User, error)
 	GetUserByProvider(ctx context.Context, provider string, providerID string) (*domain.User, error)
 	CreateUser(ctx context.Context, user *domain.User) (*domain.User, error) // same as RegisterUser
-	UpdatePersonalInfo(ctx context.Context, id int, user *domain.User) error
-	UpdateLastLogin(ctx context.Context, id int) error
+	UpdateUser(ctx context.Context, user *domain.User) error
 }

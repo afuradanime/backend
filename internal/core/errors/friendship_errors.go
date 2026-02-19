@@ -66,3 +66,9 @@ type AlreadyBlocked struct{}
 func (e AlreadyBlocked) Error() string {
 	return "You are already blocked by this user"
 }
+
+type UserDoesntAllowFriendRequests struct{}
+
+func (e UserDoesntAllowFriendRequests) Error() string {
+	return "This user doesn't allow friend requests"
+}

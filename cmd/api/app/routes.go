@@ -46,7 +46,30 @@ func (a *Application) InitRoutes(r *chi.Mux) {
 		r.Mount("/users", a.BootstrapUserModule())
 		r.Mount("/friends", a.BootstrapFriendsModule())
 		r.Mount("/threads", a.BootstrapThreadModule())
+		r.Mount("/translations", a.BootstrapTranslationsModule())
 	})
+}
+
+func (a *Application) BootstrapTranslationsModule() chi.Router {
+	translationRepo := repositories.NewDescriptionTranslationRepository(a.Mongo)
+	userRepo := repositories.NewUserRepository(a.Mongo)
+	animeRepo := repositories.NewAnimeRepository()
+	translationService := services.NewDescriptionTranslationService(translationRepo, animeRepo, userRepo)
+	translationController := controllers.NewDescriptionTranslationController(translationService)
+
+	r := chi.NewRouter()
+
+	// User routes
+	r.Post("/anime/{animeID}", translationController.SubmitTranslation)
+	r.Get("/anime/{animeID}", translationController.GetAnimeTranslation)
+	r.Get("/me", translationController.GetMyTranslations)
+
+	// Moderation routes
+	r.Put("/{id}/accept", translationController.AcceptTranslation)
+	r.Put("/{id}/reject", translationController.RejectTranslation)
+	r.Get("/pending", translationController.GetPendingTranslations)
+
+	return r
 }
 
 func (a *Application) BootstrapUserModule() chi.Router {

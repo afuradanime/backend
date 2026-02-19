@@ -9,6 +9,7 @@ import (
 	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/domain/value"
 	"github.com/afuradanime/backend/internal/core/interfaces"
+	"github.com/afuradanime/backend/internal/core/utils"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -22,14 +23,9 @@ func NewFriendshipController(friendshipService interfaces.FriendshipService) *Fr
 	}
 }
 
-func getUserIDFromContext(r *http.Request) (int, bool) {
-	userID, ok := r.Context().Value(middlewares.UserIDKey).(int)
-	return userID, ok
-}
-
 func (c *FriendshipController) SendFriendRequest(w http.ResponseWriter, r *http.Request) {
 
-	initiator, ok := getUserIDFromContext(r)
+	initiator, ok := middlewares.GetUserIDFromContext(r)
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -51,7 +47,7 @@ func (c *FriendshipController) SendFriendRequest(w http.ResponseWriter, r *http.
 }
 
 func (c *FriendshipController) AcceptFriendRequest(w http.ResponseWriter, r *http.Request) {
-	receiver, ok := getUserIDFromContext(r)
+	receiver, ok := middlewares.GetUserIDFromContext(r)
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -73,7 +69,7 @@ func (c *FriendshipController) AcceptFriendRequest(w http.ResponseWriter, r *htt
 }
 
 func (c *FriendshipController) DeclineFriendRequest(w http.ResponseWriter, r *http.Request) {
-	receiver, ok := getUserIDFromContext(r)
+	receiver, ok := middlewares.GetUserIDFromContext(r)
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -95,7 +91,7 @@ func (c *FriendshipController) DeclineFriendRequest(w http.ResponseWriter, r *ht
 }
 
 func (c *FriendshipController) BlockUser(w http.ResponseWriter, r *http.Request) {
-	initiator, ok := getUserIDFromContext(r)
+	initiator, ok := middlewares.GetUserIDFromContext(r)
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -129,25 +125,7 @@ func (c *FriendshipController) ListFriends(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Get pagination parameters with defaults
-	pageNumber := 1
-	pageSize := 50
-
-	if pageStr := r.URL.Query().Get("pageNumber"); pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p >= 0 {
-			pageNumber = p
-		}
-	}
-
-	if sizeStr := r.URL.Query().Get("pageSize"); sizeStr != "" {
-		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 {
-			pageSize = s
-		}
-	}
-
-	if pageSize > 50 {
-		pageSize = 50
-	}
+	pageNumber, pageSize := utils.GetPaginationParams(r, 50)
 
 	friends, pagination, err := c.friendshipService.GetFriendList(r.Context(), targetUser, pageNumber, pageSize)
 	if err != nil {
@@ -155,42 +133,21 @@ func (c *FriendshipController) ListFriends(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Return both data and pagination metadata
-	resp := map[string]interface{}{
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"data":       friends,
 		"pagination": pagination,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	})
 }
 
 func (c *FriendshipController) ListPendingFriendRequests(w http.ResponseWriter, r *http.Request) {
-	userID, ok := getUserIDFromContext(r)
+	userID, ok := middlewares.GetUserIDFromContext(r)
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	// Get pagination parameters with defaults
-	pageNumber := 1
-	pageSize := 50
-
-	if pageStr := r.URL.Query().Get("pageNumber"); pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p >= 0 {
-			pageNumber = p
-		}
-	}
-
-	if sizeStr := r.URL.Query().Get("pageSize"); sizeStr != "" {
-		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 {
-			pageSize = s
-		}
-	}
-
-	if pageSize > 50 {
-		pageSize = 50
-	}
+	pageNumber, pageSize := utils.GetPaginationParams(r, 50)
 
 	requests, pagination, err := c.friendshipService.GetPendingFriendRequests(r.Context(), userID, pageNumber, pageSize)
 	if err != nil {
@@ -198,18 +155,15 @@ func (c *FriendshipController) ListPendingFriendRequests(w http.ResponseWriter, 
 		return
 	}
 
-	// Return both data and pagination metadata
-	resp := map[string]interface{}{
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"data":       requests,
 		"pagination": pagination,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	})
 }
 
 func (c *FriendshipController) FetchFriendshipStatus(w http.ResponseWriter, r *http.Request) {
-	userA, ok := getUserIDFromContext(r)
+	userA, ok := middlewares.GetUserIDFromContext(r)
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return

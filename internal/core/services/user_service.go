@@ -2,8 +2,11 @@ package services
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/afuradanime/backend/internal/core/domain"
+	"github.com/afuradanime/backend/internal/core/domain/value"
+	domain_errors "github.com/afuradanime/backend/internal/core/errors"
 	"github.com/afuradanime/backend/internal/core/interfaces"
 )
 
@@ -43,43 +46,55 @@ func (s *UserService) RegisterUser(ctx context.Context, user *domain.User) (*dom
 	return added_user, nil
 }
 
-func (s *UserService) UpdatePersonalInfo(ctx context.Context, id int, email *string, username *string, location *string, pronouns *string, socials *[]string) error {
-
+func (s *UserService) UpdatePersonalInfo(ctx context.Context, id int, email *string, username *string, location *string, pronouns *string, socials *[]string, allowsFR, allowsRec *bool) error {
 	user, err := s.GetUserByID(ctx, id)
-	if err != nil {
+	if err != nil || user == nil {
 		return err
 	}
 
-	// Update fields if new values are provided
 	if email != nil {
-		err := user.UpdateEmail(*email)
-		if err != nil {
+		if err := user.UpdateEmail(*email); err != nil {
 			return err
 		}
 	}
-
 	if username != nil {
-		err := user.UpdateUsername(*username)
-		if err != nil {
+		if err := user.UpdateUsername(*username); err != nil {
 			return err
 		}
 	}
-
 	if location != nil {
 		user.UpdateLocation(*location)
 	}
-
 	if pronouns != nil {
 		user.UpdatePronouns(*pronouns)
 	}
-
 	if socials != nil {
 		user.UpdateSocials(*socials)
 	}
+	if allowsFR != nil {
+		user.UpdateAllowsFriendRequests(*allowsFR)
+	}
+	if allowsRec != nil {
+		user.UpdateAllowsRecommendations(*allowsRec)
+	}
 
-	return s.userRepository.UpdatePersonalInfo(ctx, id, user)
+	return s.userRepository.UpdateUser(ctx, user)
 }
 
 func (s *UserService) UpdateLastLogin(ctx context.Context, id int) error {
-	return s.userRepository.UpdateLastLogin(ctx, id)
+	user, err := s.GetUserByID(ctx, id)
+	if err != nil || user == nil {
+		return err
+	}
+	user.UpdateLastLogin()
+	return s.userRepository.UpdateUser(ctx, user)
+}
+
+func (s *UserService) RewardBadge(ctx context.Context, moderatorID int, targetUserID int, badge value.UserBadges) error {
+	user, err := s.GetUserByID(ctx, targetUserID)
+	if err != nil || user == nil {
+		return domain_errors.UserNotFoundError{UserID: strconv.Itoa(targetUserID)}
+	}
+	user.RewardBadge(badge)
+	return s.userRepository.UpdateUser(ctx, user)
 }

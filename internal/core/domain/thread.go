@@ -3,6 +3,9 @@ package domain
 import (
 	"time"
 
+	(
+	"time"
+
 	"github.com/afuradanime/backend/internal/core/utils"
 )
 
@@ -12,6 +15,7 @@ const (
 	ContextTypeProfile ContextType = "Profile"
 	ContextTypeAnimeOp ContextType = "AnimeOpinion"
 	ContextTypeForum   ContextType = "Forum"
+)
 )
 
 // Thread "holder" that knows the context that the thread is related to
@@ -28,12 +32,12 @@ type ThreadContext struct {
 
 // the actual thread post, that is related to a thread context
 type ThreadPost struct {
-	ID        string  `bson:"_id"`
-	ContextID int     `bson:"contextId"`
-	UserId    int     `bson:"userId"`
-	Content   string  `bson:"content"`
-	CreatedAt int64   `bson:"createdAt"`
-	ReplyTo   *string `bson:"replyTo,omitempty"`
+	ID        string    `bson:"_id"`
+	ContextID int       `bson:"contextId"`
+	UserId    int       `bson:"userId"`
+	Content   string    `bson:"content"`
+	CreatedAt time.Time `json:"CreatedAt" bson:"created_at"`
+	ReplyTo   *string   `bson:"replyTo,omitempty"`
 }
 
 func NewContext(contextId int, contextType ContextType) *ThreadContext {
@@ -50,12 +54,8 @@ func NewThreadPost(context int, userId int, content string) *ThreadPost {
 		ContextID: context,
 		UserId:    userId,
 		Content:   content,
-		CreatedAt: time.Now().Unix(),
+		CreatedAt: time.Now(),
 	}
-}
-
-func (t *ThreadPost) AddCreationTime(createdAt int64) {
-	t.CreatedAt = createdAt
 }
 
 func (t *ThreadPost) ReplyToPost(replyTo string) {
