@@ -20,10 +20,10 @@ type User struct {
 	AvatarURL string         `json:"AvatarURL" bson:"avatar_url"`
 
 	// Personal Info
-	Location string    `json:"Location" bson:"location"`
-	Birthday time.Time `json:"Birthday" bson:"birthday"`
-	Pronouns string    `json:"Pronouns" bson:"pronouns"`
-	Socials  []string  `json:"Socials" bson:"socials"`
+	Location value.TinyStr `json:"Location" bson:"location"`
+	Pronouns value.TinyStr `json:"Pronouns" bson:"pronouns"`
+	Birthday time.Time     `json:"Birthday" bson:"birthday"`
+	Socials  []value.URL   `json:"Socials" bson:"socials"`
 
 	// Rights
 	AllowsFriendRequests  bool `json:"AllowsFriendRequests" bson:"allows_friend_requests"`
@@ -59,6 +59,7 @@ func NewUser(username string, email string) (*User, error) {
 		// ID will be set by mongo auto-increment
 		Username:              *newUsername,
 		Email:                 *newEmail,
+		Socials:               make([]value.URL, 0),
 		Roles:                 []value.UserRole{value.UserRoleUser},
 		AllowsFriendRequests:  true,
 		AllowsRecommendations: true,
@@ -95,16 +96,28 @@ func (u *User) UpdateAvatarURL(url string) {
 	u.AvatarURL = url
 }
 
-func (u *User) UpdateLocation(location string) {
-	u.Location = location
+func (u *User) UpdateLocation(location string) error {
+	newLocation, err := value.NewTinyStr(location)
+	if err != nil {
+		return err
+	}
+
+	u.Location = *newLocation
+	return nil
 }
 
 func (u *User) UpdateBirthday(birthday time.Time) {
 	u.Birthday = birthday
 }
 
-func (u *User) UpdatePronouns(pronouns string) {
-	u.Pronouns = pronouns
+func (u *User) UpdatePronouns(pronouns string) error {
+	newPronouns, err := value.NewTinyStr(pronouns)
+	if err != nil {
+		return err
+	}
+
+	u.Pronouns = *newPronouns
+	return nil
 }
 
 func (u *User) UpdateSocials(socials []string) error {
@@ -113,7 +126,23 @@ func (u *User) UpdateSocials(socials []string) error {
 		return domain_errors.TooManySocials{}
 	}
 
-	u.Socials = socials
+	// Save to rollback if needed
+	oldSocials := u.Socials
+
+	// Assign array
+	u.Socials = make([]value.URL, len(socials))
+
+	for i := 0; i < len(socials); i++ {
+
+		socialLink, err := value.NewURL(socials[i])
+		if err != nil {
+			u.Socials = oldSocials
+			return err
+		}
+
+		u.Socials[i] = *socialLink
+	}
+
 	return nil
 }
 

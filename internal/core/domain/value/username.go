@@ -8,9 +8,11 @@ import (
 
 type Username string
 
-var usernameAllowed = regexp.MustCompile(`^[\p{L}0-9 _\-]+$`)
+var USERNAME_REGEX_PATTERN = regexp.MustCompile(`^[\p{L}0-9 _\-]+$`)
 
 func NewUsername(s string) (*Username, error) {
+
+	s = strings.TrimSpace(s)
 
 	if len([]int32(s)) < 2 {
 		return nil, errors.New("too short, min 2 characters")
@@ -20,11 +22,7 @@ func NewUsername(s string) (*Username, error) {
 		return nil, errors.New("too long, max 120 characters")
 	}
 
-	if strings.TrimSpace(s) != s {
-		return nil, errors.New("the username can't begin with a space")
-	}
-
-	if !usernameAllowed.MatchString(s) {
+	if !USERNAME_REGEX_PATTERN.MatchString(s) {
 		return nil, errors.New("the username can only contain letters from the Portuguese alphabet, numbers, spaces, underscores and hyphens")
 	}
 
