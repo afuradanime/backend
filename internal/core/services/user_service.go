@@ -13,12 +13,11 @@ import (
 )
 
 type UserService struct {
-	userRepository    interfaces.UserRepository
-	threadsRepository interfaces.ThreadsRepository
+	userRepository interfaces.UserRepository
 }
 
-func NewUserService(repo interfaces.UserRepository, threpo interfaces.ThreadsRepository) *UserService {
-	return &UserService{userRepository: repo, threadsRepository: threpo}
+func NewUserService(repo interfaces.UserRepository) *UserService {
+	return &UserService{userRepository: repo}
 }
 
 func (s *UserService) GetUsers(ctx context.Context, pageNumber, pageSize int) ([]*domain.User, utils.Pagination, error) {
@@ -39,12 +38,6 @@ func (s *UserService) GetUserByProvider(ctx context.Context, provider string, pr
 func (s *UserService) RegisterUser(ctx context.Context, user *domain.User) (*domain.User, error) {
 	// TODO: Check if user with same email or username already exists before creating a new one
 	added_user, err := s.userRepository.CreateUser(ctx, user)
-	if err != nil {
-		return nil, err
-	}
-	// Create profile thread context for the user
-	profile_thcontext := domain.NewContext(added_user.ID, "Profile")
-	_, err = s.threadsRepository.CreateThreadContext(ctx, profile_thcontext)
 	if err != nil {
 		return nil, err
 	}

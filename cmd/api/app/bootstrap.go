@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"time"
 
 	"github.com/afuradanime/backend/internal/adapters/repositories"
 	"github.com/afuradanime/backend/internal/core/domain"
@@ -21,15 +20,8 @@ func (a *Application) Bootstrap() {
 	// Bootstrap users and get their auto-generated IDs
 	krayID, taikoID, testID := BootstrapUsers(context.Background(), userRepo)
 
-	// Bootstrap thread contexts for user profiles
-	threadRepo := repositories.NewThreadRepository(a.Mongo)
-	BootstrapThreadContexts(context.Background(), threadRepo, krayID, taikoID, testID)
-
 	// Bootstrap friendships using the actual user IDs
 	BootstrapFriendships(context.Background(), friendshipRepo, krayID, taikoID, testID)
-
-	// Bootstrap a thread conversation on Kray's profile
-	BootstrapThreadPosts(context.Background(), threadRepo, krayID, taikoID, testID)
 
 	// Bootstrap translation suggestions
 	descRepo := repositories.NewDescriptionTranslationRepository(a.Mongo)
@@ -111,65 +103,6 @@ func BootstrapUsers(ctx context.Context, userRepo *repositories.UserRepository) 
 	testID = userTest.ID
 
 	return krayID, taikoID, testID
-}
-
-func BootstrapThreadContexts(ctx context.Context, threadRepo *repositories.ThreadRepository, krayID, taikoID, testID int) {
-	for _, userID := range []int{krayID, taikoID, testID} {
-		tc := domain.NewContext(userID, "Profile")
-		_, err := threadRepo.CreateThreadContext(ctx, tc)
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-
-func BootstrapThreadPosts(ctx context.Context, threadRepo *repositories.ThreadRepository, krayID, taikoID, testID int) {
-
-	post1 := domain.NewThreadPost(krayID, krayID, "Bem vindos ao meu perfil! 🎉")
-	post1.CreatedAt = time.Now().Add(-48 * time.Hour).Unix()
-	_, err := threadRepo.CreateThreadPost(ctx, post1)
-	if err != nil {
-		panic(err)
-	}
-
-	post2 := domain.NewThreadPost(krayID, taikoID, "Grande perfil! Parabéns pela criação do site 👏")
-	post2.CreatedAt = time.Now().Add(-36 * time.Hour).Unix()
-	post2.ReplyToPost(post1.ID)
-	_, err = threadRepo.CreateThreadPost(ctx, post2)
-	if err != nil {
-		panic(err)
-	}
-
-	post5 := domain.NewThreadPost(krayID, testID, "Que perfil fixe ⭐")
-	post5.CreatedAt = time.Now().Add(-36 * time.Hour).Unix()
-	post5.ReplyToPost(post1.ID)
-	_, err = threadRepo.CreateThreadPost(ctx, post5)
-	if err != nil {
-		panic(err)
-	}
-
-	post3 := domain.NewThreadPost(krayID, krayID, "Obrigado! Ainda há muito para fazer 😄")
-	post3.CreatedAt = time.Now().Add(-24 * time.Hour).Unix()
-	post3.ReplyToPost(post2.ID)
-	_, err = threadRepo.CreateThreadPost(ctx, post3)
-	if err != nil {
-		panic(err)
-	}
-
-	post4 := domain.NewThreadPost(krayID, testID, "Olá, acabei de me juntar! 🙋")
-	post4.CreatedAt = time.Now().Add(-12 * time.Hour).Unix()
-	_, err = threadRepo.CreateThreadPost(ctx, post4)
-	if err != nil {
-		panic(err)
-	}
-
-	post6 := domain.NewThreadPost(krayID, taikoID, "Bem vindo ao site! 🎊")
-	post6.CreatedAt = time.Now().Add(-6 * time.Hour).Unix()
-	post6.ReplyToPost(post4.ID)
-	_, err = threadRepo.CreateThreadPost(ctx, post6)
-	if err != nil {
-		panic(err)
-	}
 }
 
 func BootstrapFriendships(ctx context.Context, friendshipRepo *repositories.FriendshipRepository, krayID, taikoID, testID int) {

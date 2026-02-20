@@ -45,7 +45,6 @@ func (a *Application) InitRoutes(r *chi.Mux) {
 		r.Use(middlewares.JWTMiddleware(a.JWTConfig))
 		r.Mount("/users", a.BootstrapUserModule())
 		r.Mount("/friends", a.BootstrapFriendsModule())
-		r.Mount("/threads", a.BootstrapThreadModule())
 		r.Mount("/translations", a.BootstrapTranslationsModule())
 		r.Mount("/reports", a.BootstrapReportsModule())
 	})
@@ -75,8 +74,7 @@ func (a *Application) BootstrapTranslationsModule() chi.Router {
 
 func (a *Application) BootstrapUserModule() chi.Router {
 	userRepo := repositories.NewUserRepository(a.Mongo)
-	thRepo := repositories.NewThreadRepository(a.Mongo)
-	userService := services.NewUserService(userRepo, thRepo)
+	userService := services.NewUserService(userRepo)
 	userController := controllers.NewUserController(userService)
 
 	r := chi.NewRouter()
@@ -123,25 +121,10 @@ func (a *Application) BootstrapFriendsModule() chi.Router {
 	return r
 }
 
-func (a *Application) BootstrapThreadModule() chi.Router {
-	threadRepo := repositories.NewThreadRepository(a.Mongo)
-	userRepo := repositories.NewUserRepository(a.Mongo)
-	friendshipRepo := repositories.NewFriendshipRepository(a.Mongo)
-	threadService := services.NewThreadService(threadRepo, userRepo, friendshipRepo)
-	threadController := controllers.NewThreadController(threadService)
-
-	r := chi.NewRouter()
-	r.Get("/{contextId}", threadController.GetThreadPostsByContext)
-	r.Post("/{contextId}/{contextType}", threadController.CreateThreadPost)
-
-	return r
-}
-
 func (a *Application) BootstrapAuthModule() chi.Router {
 
 	jwtService := services.NewJWTService(a.JWTConfig)
-	thRepo := repositories.NewThreadRepository(a.Mongo)
-	userService := services.NewUserService(repositories.NewUserRepository(a.Mongo), thRepo)
+	userService := services.NewUserService(repositories.NewUserRepository(a.Mongo))
 	googleAuthController := controllers.NewGoogleAuthController(a.OAuth2Config, jwtService, userService)
 
 	r := chi.NewRouter()
