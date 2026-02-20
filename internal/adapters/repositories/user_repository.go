@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/afuradanime/backend/internal/core/domain"
+	"github.com/afuradanime/backend/internal/core/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -41,27 +42,73 @@ func (r *UserRepository) getNextSequence(ctx context.Context, name string) (int,
 	return result.Seq, nil
 }
 
-func (r *UserRepository) GetUsers(ctx context.Context) ([]*domain.User, error) {
-	cursor, err := r.collection.Find(ctx, bson.M{})
+func (r *UserRepository) GetUsers(ctx context.Context, pageNumber, pageSize int) ([]*domain.User, utils.Pagination, error) {
+	skip := (pageNumber - 1) * pageSize
+
+	total, err := r.collection.CountDocuments(ctx, bson.M{})
 	if err != nil {
-		return nil, err
+		return nil, utils.Pagination{}, err
+	}
+
+	cursor, err := r.collection.Find(ctx, bson.M{}, options.Find().
+		SetSkip(int64(skip)).
+		SetLimit(int64(pageSize)),
+	)
+	if err != nil {
+		return nil, utils.Pagination{}, err
 	}
 	defer cursor.Close(ctx)
 
 	var users []*domain.User
-	for cursor.Next(ctx) {
-		var user domain.User
-		if err := cursor.Decode(&user); err != nil {
-			return nil, err
-		}
-		users = append(users, &user)
+	if err := cursor.All(ctx, &users); err != nil {
+		return nil, utils.Pagination{}, err
 	}
 
-	if err := cursor.Err(); err != nil {
-		return nil, err
+	totalPages := (int(total) + pageSize - 1) / pageSize
+	return users, utils.Pagination{
+		PageNumber: pageNumber,
+		PageSize:   pageSize,
+		TotalPages: totalPages,
+	}, nil
+}
+
+func (r *UserRepository) SearchByUsername(ctx context.Context, username string, pageNumber, pageSize int) ([]*domain.User, utils.Pagination, error) {
+	skip := (pageNumber - 1) * pageSize
+
+	// Case-insensitive partial match
+	filter := bson.M{
+		"username": bson.M{
+			"$regex":   username,
+			"$options": "i",
+		},
 	}
 
-	return users, nil
+	total, err := r.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, utils.Pagination{}, err
+	}
+
+	cursor, err := r.collection.Find(ctx, filter, options.Find().
+		SetSkip(int64(skip)).
+		SetLimit(int64(pageSize)).
+		SetSort(bson.M{"_id": 1}),
+	)
+	if err != nil {
+		return nil, utils.Pagination{}, err
+	}
+	defer cursor.Close(ctx)
+
+	var users []*domain.User
+	if err := cursor.All(ctx, &users); err != nil {
+		return nil, utils.Pagination{}, err
+	}
+
+	totalPages := (int(total) + pageSize - 1) / pageSize
+	return users, utils.Pagination{
+		PageNumber: pageNumber,
+		PageSize:   pageSize,
+		TotalPages: totalPages,
+	}, nil
 }
 
 func (r *UserRepository) GetUserById(ctx context.Context, id int) (*domain.User, error) {

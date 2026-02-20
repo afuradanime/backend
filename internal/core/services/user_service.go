@@ -9,6 +9,7 @@ import (
 	"github.com/afuradanime/backend/internal/core/domain/value"
 	domain_errors "github.com/afuradanime/backend/internal/core/errors"
 	"github.com/afuradanime/backend/internal/core/interfaces"
+	"github.com/afuradanime/backend/internal/core/utils"
 )
 
 type UserService struct {
@@ -20,10 +21,13 @@ func NewUserService(repo interfaces.UserRepository, threpo interfaces.ThreadsRep
 	return &UserService{userRepository: repo, threadsRepository: threpo}
 }
 
-func (s *UserService) GetUsers(ctx context.Context) ([]*domain.User, error) {
-	return s.userRepository.GetUsers(ctx)
+func (s *UserService) GetUsers(ctx context.Context, pageNumber, pageSize int) ([]*domain.User, utils.Pagination, error) {
+	return s.userRepository.GetUsers(ctx, pageNumber, pageSize)
 }
 
+func (s *UserService) SearchByUsername(ctx context.Context, username string, pageNumber, pageSize int) ([]*domain.User, utils.Pagination, error) {
+	return s.userRepository.SearchByUsername(ctx, username, pageNumber, pageSize)
+}
 func (s *UserService) GetUserByID(ctx context.Context, id int) (*domain.User, error) {
 	return s.userRepository.GetUserById(ctx, id)
 }

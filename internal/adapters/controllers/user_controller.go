@@ -9,6 +9,7 @@ import (
 	"github.com/afuradanime/backend/internal/adapters/middlewares"
 	"github.com/afuradanime/backend/internal/core/domain/value"
 	"github.com/afuradanime/backend/internal/core/interfaces"
+	"github.com/afuradanime/backend/internal/core/utils"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -21,14 +22,41 @@ func NewUserController(s interfaces.UserService) *UserController {
 }
 
 func (uc *UserController) GetUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := uc.userService.GetUsers(r.Context())
+	pageNumber, pageSize := utils.GetPaginationParams(r, 20)
+
+	users, pagination, err := uc.userService.GetUsers(r.Context(), pageNumber, pageSize)
 	if err != nil {
 		http.Error(w, "Failed to retrieve users", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(users)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"data":       users,
+		"pagination": pagination,
+	})
+}
+
+func (uc *UserController) SearchByUsername(w http.ResponseWriter, r *http.Request) {
+	username := r.URL.Query().Get("q")
+	if username == "" {
+		http.Error(w, "Missing search query", http.StatusBadRequest)
+		return
+	}
+
+	pageNumber, pageSize := utils.GetPaginationParams(r, 20)
+
+	users, pagination, err := uc.userService.SearchByUsername(r.Context(), username, pageNumber, pageSize)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"data":       users,
+		"pagination": pagination,
+	})
 }
 
 func (uc *UserController) GetUserByID(w http.ResponseWriter, r *http.Request) {

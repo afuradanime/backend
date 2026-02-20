@@ -81,6 +81,7 @@ func (a *Application) BootstrapUserModule() chi.Router {
 
 	r := chi.NewRouter()
 	r.Get("/", userController.GetUsers)
+	r.Get("/search", userController.SearchByUsername)
 	r.Get("/{id}", userController.GetUserByID)
 	r.Put("/", userController.UpdateUserInfo)
 	r.Put("/{id}/restrict", userController.RestrictAccount)

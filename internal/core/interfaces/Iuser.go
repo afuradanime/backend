@@ -5,10 +5,12 @@ import (
 	"time"
 
 	"github.com/afuradanime/backend/internal/core/domain"
+	"github.com/afuradanime/backend/internal/core/utils"
 )
 
 type UserService interface {
-	GetUsers(ctx context.Context) ([]*domain.User, error)
+	GetUsers(ctx context.Context, pageNumber, pageSize int) ([]*domain.User, utils.Pagination, error)
+	SearchByUsername(ctx context.Context, username string, pageNumber, pageSize int) ([]*domain.User, utils.Pagination, error)
 	GetUserByID(ctx context.Context, id int) (*domain.User, error)
 	GetUserByProvider(ctx context.Context, provider string, providerID string) (*domain.User, error)
 	RegisterUser(ctx context.Context, user *domain.User) (*domain.User, error)
@@ -18,7 +20,8 @@ type UserService interface {
 }
 
 type UserRepository interface {
-	GetUsers(ctx context.Context) ([]*domain.User, error)
+	GetUsers(ctx context.Context, pageNumber, pageSize int) ([]*domain.User, utils.Pagination, error)
+	SearchByUsername(ctx context.Context, username string, pageNumber, pageSize int) ([]*domain.User, utils.Pagination, error)
 	GetUserById(ctx context.Context, id int) (*domain.User, error)
 	GetUserByProvider(ctx context.Context, provider string, providerID string) (*domain.User, error)
 	CreateUser(ctx context.Context, user *domain.User) (*domain.User, error) // same as RegisterUser
