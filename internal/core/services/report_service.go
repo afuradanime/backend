@@ -55,8 +55,13 @@ func (s *UserReportService) SubmitReport(ctx context.Context, reason value.Repor
 	reportCount, err := s.reportRepository.CountReportsByTarget(ctx, targetUserID)
 	if reportCount+1 >= MAX_REPORT_NUMBER {
 
-		target.RestrictAccesses(false, false)
-		s.userRepository.UpdateUser(ctx, target)
+		if !target.HasRole(value.UserRoleAdmin) && !target.HasRole(value.UserRoleModerator) {
+
+			target.RestrictAccesses(false, false)
+			s.userRepository.UpdateUser(ctx, target)
+		} else {
+			// Calma lá nos ja vemos o que fazer
+		}
 	}
 
 	report := domain.NewUserReport(reason, targetUserID, reporterID)

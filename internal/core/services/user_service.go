@@ -97,6 +97,11 @@ func (s *UserService) RestrictAccount(ctx context.Context, id int, canPost, canT
 		return err
 	}
 
+	if user.HasRole(value.UserRoleAdmin) {
+		// Népia
+		return domain_errors.CantRestrictAnAdmin{}
+	}
+
 	user.RestrictAccesses(canPost, canTranslate)
 	return s.userRepository.UpdateUser(ctx, user)
 }

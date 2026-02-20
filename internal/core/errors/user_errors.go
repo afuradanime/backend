@@ -19,3 +19,9 @@ type TooManySocials struct{}
 func (e TooManySocials) Error() string {
 	return "You can only have 5 social links"
 }
+
+type CantRestrictAnAdmin struct{}
+
+func (e CantRestrictAnAdmin) Error() string {
+	return "You cannot restrict an admin"
+}
