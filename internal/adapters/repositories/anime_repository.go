@@ -17,12 +17,56 @@ import (
 
 	"github.com/afuradanime/backend/internal/adapters/mappers"
 	"github.com/afuradanime/backend/internal/core/domain"
+	"github.com/afuradanime/backend/internal/core/domain/filters"
 	"github.com/afuradanime/backend/internal/core/domain/value"
 	"github.com/afuradanime/backend/internal/core/utils"
 )
 
 type AnimeRepository struct {
 	animeMapper *mappers.AnimeMapper
+}
+
+func buildCFilter(f filters.AnimeFilter) (C.anime_filter_t, []*C.char) {
+	var filter C.anime_filter_t
+	var toFree []*C.char
+
+	if f.Name != nil {
+		cs := C.CString(*f.Name)
+		toFree = append(toFree, cs)
+		filter.name = cs
+	}
+	if f.Type != nil {
+		ct := C.enum_anime_type(*f.Type)
+		filter._type = &ct
+	}
+	if f.Status != nil {
+		cs := C.enum_anime_status(*f.Status)
+		filter.status = &cs
+	}
+	if f.StartDate != nil {
+		ct := C.time_t(*f.StartDate)
+		filter.start_date = &ct
+	}
+	if f.EndDate != nil {
+		ct := C.time_t(*f.EndDate)
+		filter.end_date = &ct
+	}
+	if f.MinEpisodes != nil {
+		cm := C.uint(*f.MinEpisodes)
+		filter.min_episodes = &cm
+	}
+	if f.MaxEpisodes != nil {
+		cm := C.uint(*f.MaxEpisodes)
+		filter.max_episodes = &cm
+	}
+
+	return filter, toFree
+}
+
+func freeCFilter(ptrs []*C.char) {
+	for _, p := range ptrs {
+		C.free(unsafe.Pointer(p))
+	}
 }
 
 func NewAnimeRepository() *AnimeRepository {
@@ -55,25 +99,21 @@ func (r *AnimeRepository) FetchAnimeByID(animeID uint32) (*domain.Anime, error) 
 	return anime, nil
 }
 
-func (r *AnimeRepository) FetchAnimeFromQuery(name string, pageNumber, pageSize int) ([]*domain.Anime, utils.Pagination, error) {
+func (r *AnimeRepository) FetchAnimeFromQuery(filters filters.AnimeFilter, pageNumber, pageSize int) ([]*domain.Anime, utils.Pagination, error) {
+	cFilter, toFree := buildCFilter(filters)
+	defer freeCFilter(toFree)
 
-	// convert Go string to C string
-	var cName = C.CString(name)
-	defer C.free(unsafe.Pointer(cName)) // set to clean on scope end
-
-	// Create pageable struct
 	var totalPages C.uint
 	var page = C.pageable_t{
 		page_number: C.ushort(pageNumber),
 		page_size:   C.ushort(pageSize),
 	}
-
 	var count C.uint
 	var animeArray *C.partial_anime_t
 
-	var rc = C.fetch_anime_from_query(cName, page, &count, &totalPages, &animeArray)
+	rc := C.fetch_anime_from_query(cFilter, page, &count, &totalPages, &animeArray)
 	if rc != 0 {
-		return nil, utils.Pagination{}, errors.New("Failed to fetch anime from query: " + name)
+		return nil, utils.Pagination{}, errors.New("Failed to fetch anime from query")
 	}
 
 	if count == 0 {
@@ -111,7 +151,10 @@ func (r *AnimeRepository) FetchAnimeFromQuery(name string, pageNumber, pageSize 
 	}, nil
 }
 
-func (r *AnimeRepository) FetchAnimeThisSeason(pageNumber, pageSize int) ([]*domain.Anime, utils.Pagination, error) {
+func (r *AnimeRepository) FetchAnimeThisSeason(filters filters.AnimeFilter, pageNumber, pageSize int) ([]*domain.Anime, utils.Pagination, error) {
+	cFilter, toFree := buildCFilter(filters)
+	defer freeCFilter(toFree)
+
 	var count C.uint
 	var animeArray *C.partial_anime_t
 	var totalPages C.uint
@@ -120,7 +163,7 @@ func (r *AnimeRepository) FetchAnimeThisSeason(pageNumber, pageSize int) ([]*dom
 		page_size:   C.ushort(pageSize),
 	}
 
-	rc := C.fetch_anime_this_season(page, &count, &totalPages, &animeArray)
+	rc := C.fetch_anime_this_season(cFilter, page, &count, &totalPages, &animeArray)
 	if rc != 0 {
 		return nil, utils.Pagination{}, errors.New("Failed to fetch anime this season")
 	}
@@ -157,7 +200,10 @@ func (r *AnimeRepository) FetchAnimeThisSeason(pageNumber, pageSize int) ([]*dom
 	}, nil
 }
 
-func (r *AnimeRepository) FetchStudioByID(studioID uint32, pageNumber, pageSize int) (*value.Studio, []*domain.Anime, utils.Pagination, error) {
+func (r *AnimeRepository) FetchStudioByID(studioID uint32, filters filters.AnimeFilter, pageNumber, pageSize int) (*value.Studio, []*domain.Anime, utils.Pagination, error) {
+	cFilter, toFree := buildCFilter(filters)
+	defer freeCFilter(toFree)
+
 	var studioPtr C.studio_t
 	var count C.uint
 	var animeArray *C.partial_anime_t
@@ -167,7 +213,7 @@ func (r *AnimeRepository) FetchStudioByID(studioID uint32, pageNumber, pageSize 
 		page_size:   C.ushort(pageSize),
 	}
 
-	rc := C.fetch_studio_by_id(C.uint(studioID), &studioPtr, page, &count, &totalPages, &animeArray)
+	rc := C.fetch_studio_by_id(C.uint(studioID), cFilter, &studioPtr, page, &count, &totalPages, &animeArray)
 	if rc != 0 {
 		return nil, nil, utils.Pagination{}, errors.New("No studio found with id " + strconv.Itoa(int(studioID)))
 	}
@@ -206,7 +252,10 @@ func (r *AnimeRepository) FetchStudioByID(studioID uint32, pageNumber, pageSize 
 	}, nil
 }
 
-func (r *AnimeRepository) FetchProducerByID(producerID uint32, pageNumber, pageSize int) (*value.Producer, []*domain.Anime, utils.Pagination, error) {
+func (r *AnimeRepository) FetchProducerByID(producerID uint32, filters filters.AnimeFilter, pageNumber, pageSize int) (*value.Producer, []*domain.Anime, utils.Pagination, error) {
+	cFilter, toFree := buildCFilter(filters)
+	defer freeCFilter(toFree)
+
 	var producerPtr C.producer_t
 	var count C.uint
 	var animeArray *C.partial_anime_t
@@ -216,7 +265,7 @@ func (r *AnimeRepository) FetchProducerByID(producerID uint32, pageNumber, pageS
 		page_size:   C.ushort(pageSize),
 	}
 
-	rc := C.fetch_producer_by_id(C.uint(producerID), &producerPtr, page, &count, &totalPages, &animeArray)
+	rc := C.fetch_producer_by_id(C.uint(producerID), cFilter, &producerPtr, page, &count, &totalPages, &animeArray)
 	if rc != 0 {
 		return nil, nil, utils.Pagination{}, errors.New("No producer found with id " + strconv.Itoa(int(producerID)))
 	}
@@ -255,7 +304,10 @@ func (r *AnimeRepository) FetchProducerByID(producerID uint32, pageNumber, pageS
 	}, nil
 }
 
-func (r *AnimeRepository) FetchLicensorByID(licensorID uint32, pageNumber, pageSize int) (*value.Licensor, []*domain.Anime, utils.Pagination, error) {
+func (r *AnimeRepository) FetchLicensorByID(licensorID uint32, filters filters.AnimeFilter, pageNumber, pageSize int) (*value.Licensor, []*domain.Anime, utils.Pagination, error) {
+	cFilter, toFree := buildCFilter(filters)
+	defer freeCFilter(toFree)
+
 	var licensorPtr C.licensor_t
 	var count C.uint
 	var animeArray *C.partial_anime_t
@@ -265,7 +317,7 @@ func (r *AnimeRepository) FetchLicensorByID(licensorID uint32, pageNumber, pageS
 		page_size:   C.ushort(pageSize),
 	}
 
-	rc := C.fetch_licensor_by_id(C.uint(licensorID), &licensorPtr, page, &count, &totalPages, &animeArray)
+	rc := C.fetch_licensor_by_id(C.uint(licensorID), cFilter, &licensorPtr, page, &count, &totalPages, &animeArray)
 	if rc != 0 {
 		return nil, nil, utils.Pagination{}, errors.New("No licensor found with id " + strconv.Itoa(int(licensorID)))
 	}
@@ -298,6 +350,51 @@ func (r *AnimeRepository) FetchLicensorByID(licensorID uint32, pageNumber, pageS
 	C.free_partial_anime_array(animeArray, count)
 
 	return licensor, results, utils.Pagination{
+		PageNumber: pageNumber,
+		PageSize:   pageSize,
+		TotalPages: int(totalPages),
+	}, nil
+}
+
+func (r *AnimeRepository) FetchAnimeFromTag(tagID uint32, f filters.AnimeFilter, pageNumber, pageSize int) ([]*domain.Anime, utils.Pagination, error) {
+	cFilter, toFree := buildCFilter(f)
+	defer freeCFilter(toFree)
+
+	var count C.uint
+	var animeArray *C.partial_anime_t
+	var totalPages C.uint
+	var page = C.pageable_t{
+		page_number: C.ushort(pageNumber),
+		page_size:   C.ushort(pageSize),
+	}
+
+	rc := C.fetch_anime_from_tag(C.uint(tagID), cFilter, page, &count, &totalPages, &animeArray)
+	if rc != 0 {
+		return nil, utils.Pagination{}, errors.New("Failed to fetch anime from tag " + strconv.Itoa(int(tagID)))
+	}
+
+	if count == 0 {
+		return []*domain.Anime{}, utils.Pagination{
+			PageNumber: pageNumber,
+			PageSize:   pageSize,
+			TotalPages: int(totalPages),
+		}, nil
+	}
+
+	animeSlice := unsafe.Slice(animeArray, count)
+	results := make([]*domain.Anime, count)
+	for i := 0; i < int(count); i++ {
+		a := &animeSlice[i]
+		anime, err := r.animeMapper.CToGoPartial(unsafe.Pointer(a))
+		if err != nil {
+			C.free_partial_anime_array(animeArray, count)
+			return nil, utils.Pagination{}, err
+		}
+		results[i] = anime
+	}
+	C.free_partial_anime_array(animeArray, count)
+
+	return results, utils.Pagination{
 		PageNumber: pageNumber,
 		PageSize:   pageSize,
 		TotalPages: int(totalPages),

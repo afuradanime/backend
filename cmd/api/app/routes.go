@@ -39,11 +39,11 @@ func (a *Application) InitRoutes(r *chi.Mux) {
 	r.Group(func(r chi.Router) {
 		r.Mount("/auth", a.BootstrapAuthModule())
 		r.Mount("/anime", a.BootstrapAnimeModule())
+		r.Mount("/users", a.BootstrapUserModule())
 	})
 
 	r.Group(func(r chi.Router) {
 		r.Use(middlewares.JWTMiddleware(a.JWTConfig))
-		r.Mount("/users", a.BootstrapUserModule())
 		r.Mount("/friends", a.BootstrapFriendsModule())
 		r.Mount("/translations", a.BootstrapTranslationsModule())
 		r.Mount("/reports", a.BootstrapReportsModule())
@@ -100,6 +100,7 @@ func (a *Application) BootstrapAnimeModule() chi.Router {
 	r.Get("/studio/{id}", animeController.GetAnimeByStudioID)
 	r.Get("/producer/{id}", animeController.GetAnimeByProducerID)
 	r.Get("/licensor/{id}", animeController.GetAnimeByLicensorID)
+	r.Get("/tags/{id}", animeController.GetAnimeByTagID)
 
 	return r
 }

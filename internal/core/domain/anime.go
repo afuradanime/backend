@@ -4,23 +4,8 @@ import (
 	"time"
 
 	"github.com/afuradanime/backend/internal/core/domain/value"
+	"github.com/afuradanime/backend/internal/core/utils"
 )
-
-// TODO: Deviamos por isto num helper.go? depois ve como queres fazer isso
-func ParseISODate(s *string) *time.Time {
-	if s == nil || *s == "" {
-		return nil
-	}
-
-	if t, err := time.Parse(time.RFC3339, *s); err == nil {
-		return &t
-	}
-
-	// Oops
-	// TODO: fazer alguma coisa ??
-	t := time.Now()
-	return &t
-}
 
 type Anime struct {
 	ID    uint32
@@ -81,8 +66,8 @@ func NewAnime(
 	trailerEmbedURL string,
 ) (*Anime, error) {
 
-	var startDate *time.Time = ParseISODate(&startDateISO)
-	var endDate *time.Time = ParseISODate(&endDateISO)
+	var startDate *time.Time = utils.ParseISODate(&startDateISO)
+	var endDate *time.Time = utils.ParseISODate(&endDateISO)
 
 	anime := &Anime{
 		ID:       id,

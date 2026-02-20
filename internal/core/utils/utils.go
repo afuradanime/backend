@@ -1,5 +1,7 @@
 package utils
 
+import "time"
+
 func Clamp(a, bottom, top int) int {
 
 	if a < bottom {
@@ -29,4 +31,17 @@ func ClampTop(a, top int) int {
 	}
 
 	return a
+}
+
+func ParseISODate(s *string) *time.Time {
+	if s == nil || *s == "" {
+		return nil
+	}
+
+	if t, err := time.Parse(time.RFC3339, *s); err == nil {
+		return &t
+	}
+
+	t := time.Now()
+	return &t
 }
