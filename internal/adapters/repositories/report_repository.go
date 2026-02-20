@@ -182,3 +182,10 @@ func (r *UserReportRepository) HasReported(ctx context.Context, reporterID, targ
 	})
 	return count > 0, err
 }
+
+func (r *UserReportRepository) CountReportsByTarget(ctx context.Context, targetUserID int) (int, error) {
+	count, err := r.collection.CountDocuments(ctx, bson.M{
+		"target_user": targetUserID,
+	})
+	return int(count), err
+}

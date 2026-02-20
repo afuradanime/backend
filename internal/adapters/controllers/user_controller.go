@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/afuradanime/backend/internal/adapters/middlewares"
+	"github.com/afuradanime/backend/internal/core/domain/value"
 	"github.com/afuradanime/backend/internal/core/interfaces"
 	"github.com/go-chi/chi/v5"
 )
@@ -97,4 +98,33 @@ func (uc *UserController) UpdateUserInfo(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (uc *UserController) RestrictAccount(w http.ResponseWriter, r *http.Request) {
+	if !middlewares.IsLoggedUserOfRole(r, value.UserRoleModerator) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	targetID, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	var body struct {
+		CanPost      bool `json:"CanPost"`
+		CanTranslate bool `json:"CanTranslate"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := uc.userService.RestrictAccount(r.Context(), targetID, body.CanPost, body.CanTranslate); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

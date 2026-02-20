@@ -186,3 +186,8 @@ func (u *User) RevokeRole(role value.UserRole) {
 func (u *User) HasRole(role value.UserRole) bool {
 	return slices.Contains(u.Roles, role)
 }
+
+func (u *User) RestrictAccesses(canPost, canTranslate bool) {
+	u.CanPost = canPost
+	u.CanTranslate = canTranslate
+}

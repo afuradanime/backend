@@ -13,6 +13,7 @@ type UserService interface {
 	GetUserByProvider(ctx context.Context, provider string, providerID string) (*domain.User, error)
 	RegisterUser(ctx context.Context, user *domain.User) (*domain.User, error)
 	UpdatePersonalInfo(ctx context.Context, id int, email *string, username *string, location *string, pronouns *string, socials *[]string, birthday *time.Time, allowsFR, allowsRec *bool) error
+	RestrictAccount(ctx context.Context, id int, canPost, canTranslate bool) error
 	UpdateLastLogin(ctx context.Context, id int) error
 }
 

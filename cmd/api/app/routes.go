@@ -83,6 +83,7 @@ func (a *Application) BootstrapUserModule() chi.Router {
 	r.Get("/", userController.GetUsers)
 	r.Get("/{id}", userController.GetUserByID)
 	r.Put("/", userController.UpdateUserInfo)
+	r.Put("/{id}/restrict", userController.RestrictAccount)
 
 	return r
 }

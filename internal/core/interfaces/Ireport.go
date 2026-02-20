@@ -22,5 +22,6 @@ type UserReportRepository interface {
 	DeleteReport(ctx context.Context, id int) error
 	GetReports(ctx context.Context, pageNumber, pageSize int) ([]repositories.ReportResult, utils.Pagination, error)
 	GetReportsByTarget(ctx context.Context, targetUserID int, pageNumber, pageSize int) ([]domain.UserReport, utils.Pagination, error)
+	CountReportsByTarget(ctx context.Context, targetUserID int) (int, error)
 	HasReported(ctx context.Context, reporterID, targetUserID int) (bool, error)
 }

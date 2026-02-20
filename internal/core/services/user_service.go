@@ -87,6 +87,16 @@ func (s *UserService) UpdatePersonalInfo(ctx context.Context, id int, email *str
 	return s.userRepository.UpdateUser(ctx, user)
 }
 
+func (s *UserService) RestrictAccount(ctx context.Context, id int, canPost, canTranslate bool) error {
+	user, err := s.GetUserByID(ctx, id)
+	if err != nil || user == nil {
+		return err
+	}
+
+	user.RestrictAccesses(canPost, canTranslate)
+	return s.userRepository.UpdateUser(ctx, user)
+}
+
 func (s *UserService) UpdateLastLogin(ctx context.Context, id int) error {
 	user, err := s.GetUserByID(ctx, id)
 	if err != nil || user == nil {

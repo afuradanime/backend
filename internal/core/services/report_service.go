@@ -11,6 +11,8 @@ import (
 	"github.com/afuradanime/backend/internal/core/utils"
 )
 
+const MAX_REPORT_NUMBER = 5
+
 type UserReportService struct {
 	reportRepository interfaces.UserReportRepository
 	userRepository   interfaces.UserRepository
@@ -37,6 +39,10 @@ func (s *UserReportService) SubmitReport(ctx context.Context, reason value.Repor
 		return domain_errors.UserNotFoundError{}
 	}
 
+	if !target.CanPost && !target.CanTranslate {
+		return domain_errors.UserAlreadyRestrictedError{}
+	}
+
 	// Check not already reported
 	already, err := s.reportRepository.HasReported(ctx, reporterID, targetUserID)
 	if err != nil {
@@ -44,6 +50,13 @@ func (s *UserReportService) SubmitReport(ctx context.Context, reason value.Repor
 	}
 	if already {
 		return domain_errors.AlreadyReportedError{}
+	}
+
+	reportCount, err := s.reportRepository.CountReportsByTarget(ctx, targetUserID)
+	if reportCount+1 >= MAX_REPORT_NUMBER {
+
+		target.RestrictAccesses(false, false)
+		s.userRepository.UpdateUser(ctx, target)
 	}
 
 	report := domain.NewUserReport(reason, targetUserID, reporterID)
