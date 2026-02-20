@@ -12,7 +12,7 @@ type DescriptionTranslation struct {
 
 	Anime int `json:"Anime" bson:"anime"`
 
-	TranslatedDescription string                             `json:"TranslatedDescription" bson:"translated_description"`
+	TranslatedDescription value.LongStr                      `json:"TranslatedDescription" bson:"translated_description"`
 	TranslationStatus     value.DescriptionTranslationStatus `json:"status" bson:"status"`
 
 	CreatedBy int       `json:"CreatedBy" bson:"created_by"`
@@ -23,17 +23,23 @@ type DescriptionTranslation struct {
 }
 
 // create a pending translation submission
-func NewDescriptionTranslation(animeID int, translatedDescription string, createdBy int) *DescriptionTranslation {
+func NewDescriptionTranslation(animeID int, translatedDescription string, createdBy int) (*DescriptionTranslation, error) {
+
+	newDescription, err := value.NewLongStr(translatedDescription)
+	if err != nil {
+		return nil, err
+	}
+
 	return &DescriptionTranslation{
 		// ID will be set by mongo auto-increment
 		Anime:                 animeID,
-		TranslatedDescription: translatedDescription,
+		TranslatedDescription: *newDescription,
 		TranslationStatus:     value.DescriptionTranslationPending,
 		CreatedBy:             createdBy,
 		CreatedAt:             time.Now(),
 		AcceptedBy:            nil,
 		AcceptedAt:            nil,
-	}
+	}, nil
 }
 
 func (t *DescriptionTranslation) Accept(moderatorID int) error {

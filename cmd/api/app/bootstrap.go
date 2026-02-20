@@ -31,8 +31,13 @@ func (a *Application) Bootstrap() {
 	// Bootstrap a thread conversation on Kray's profile
 	BootstrapThreadPosts(context.Background(), threadRepo, krayID, taikoID, testID)
 
+	// Bootstrap translation suggestions
 	descRepo := repositories.NewDescriptionTranslationRepository(a.Mongo)
 	BootstrapTranslations(context.Background(), descRepo)
+
+	// Bootstrap user reports
+	reportRepo := repositories.NewUserReportRepository(a.Mongo)
+	BootstrapReports(context.Background(), reportRepo)
 }
 
 func BootstrapUsers(ctx context.Context, userRepo *repositories.UserRepository) (krayID, taikoID, testID int) {
@@ -188,10 +193,19 @@ func BootstrapFriendships(ctx context.Context, friendshipRepo *repositories.Frie
 
 func BootstrapTranslations(ctx context.Context, translationRepo *repositories.DescriptionTranslationRepository) {
 
-	translation := domain.NewDescriptionTranslation(32901, "Há um ano, Sagiri Izumi tornou-se meio-irmã de Masamune Izumi. Mas a morte repentina de seus pais despedaça a nova família, fazendo com que Sagiri se isole do irmão e da sociedade.\n\nEnquanto cuida do que restou de sua família, Masamune ganha a vida como autor de light novels, com um pequeno problema: ele nunca conheceu sua aclamada ilustradora, Eromanga-sensei, famosa por desenhar as eróticas mais ousadas. Através de uma série de eventos embaraçosos, ele descobre que sua própria irmãzinha era sua parceira o tempo todo!\n\nÀ medida que novos personagens e desafios surgem, Masamune e Sagiri precisam enfrentar juntos a indústria de light novels. Eromanga-sensei acompanha o desenvolvimento do relacionamento deles e a luta para alcançar o sucesso; e, conforme Sagiri lentamente se liberta de sua timidez, por quanto tempo ela conseguirá esconder sua verdadeira personalidade do resto do mundo?\n\n[Escrito por MAL Rewrite]", 2)
+	translation, _ := domain.NewDescriptionTranslation(32901, "Há um ano, Sagiri Izumi tornou-se meio-irmã de Masamune Izumi. Mas a morte repentina de seus pais despedaça a nova família, fazendo com que Sagiri se isole do irmão e da sociedade.\n\nEnquanto cuida do que restou de sua família, Masamune ganha a vida como autor de light novels, com um pequeno problema: ele nunca conheceu sua aclamada ilustradora, Eromanga-sensei, famosa por desenhar as eróticas mais ousadas. Através de uma série de eventos embaraçosos, ele descobre que sua própria irmãzinha era sua parceira o tempo todo!\n\nÀ medida que novos personagens e desafios surgem, Masamune e Sagiri precisam enfrentar juntos a indústria de light novels. Eromanga-sensei acompanha o desenvolvimento do relacionamento deles e a luta para alcançar o sucesso; e, conforme Sagiri lentamente se liberta de sua timidez, por quanto tempo ela conseguirá esconder sua verdadeira personalidade do resto do mundo?\n\n[Escrito por MAL Rewrite]", 2)
 	translation.Accept(2)
 
 	err := translationRepo.CreateTranslation(ctx, translation)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func BootstrapReports(ctx context.Context, reportRepo *repositories.UserReportRepository) {
+
+	report := domain.NewUserReport(value.ReportReasonIllegalActivities, 1, 2)
+	err := reportRepo.CreateReport(ctx, report)
 	if err != nil {
 		panic(err)
 	}

@@ -67,7 +67,11 @@ func (s *DescriptionTranslationService) SubmitTranslation(ctx context.Context, a
 		_ = s.userRepository.UpdateUser(ctx, translator)
 	}
 
-	translation := domain.NewDescriptionTranslation(animeID, translatedDescription, createdBy)
+	translation, err := domain.NewDescriptionTranslation(animeID, translatedDescription, createdBy)
+	if err != nil {
+		return err
+	}
+
 	return s.translationRepository.CreateTranslation(ctx, translation)
 }
 

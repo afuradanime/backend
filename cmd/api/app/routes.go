@@ -47,6 +47,7 @@ func (a *Application) InitRoutes(r *chi.Mux) {
 		r.Mount("/friends", a.BootstrapFriendsModule())
 		r.Mount("/threads", a.BootstrapThreadModule())
 		r.Mount("/translations", a.BootstrapTranslationsModule())
+		r.Mount("/reports", a.BootstrapReportsModule())
 	})
 }
 
@@ -146,6 +147,21 @@ func (a *Application) BootstrapAuthModule() chi.Router {
 	r.Get("/google/callback", googleAuthController.Callback)
 	r.Get("/me", googleAuthController.WhoAmI)
 	r.Get("/logout", googleAuthController.Logout)
+
+	return r
+}
+
+func (a *Application) BootstrapReportsModule() chi.Router {
+	reportRepo := repositories.NewUserReportRepository(a.Mongo)
+	userRepo := repositories.NewUserRepository(a.Mongo)
+	reportService := services.NewUserReportService(reportRepo, userRepo)
+	reportController := controllers.NewUserReportController(reportService)
+
+	r := chi.NewRouter()
+	r.Post("/{userID}", reportController.SubmitReport)
+	r.Get("/", reportController.GetReports)
+	r.Get("/user/{userID}", reportController.GetReportsByTarget)
+	r.Delete("/{id}", reportController.DeleteReport)
 
 	return r
 }
