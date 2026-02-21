@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"strconv"
+	"time"
 
 	"github.com/afuradanime/backend/internal/adapters/repositories"
 	"github.com/afuradanime/backend/internal/core/domain"
@@ -54,6 +55,7 @@ func BootstrapUsers(ctx context.Context, userRepo *repositories.UserRepository) 
 	userKray.AddRole(value.UserRoleAdmin)
 
 	userKray.UpdateAvatarURL("/pfps/d7dea5d3e09941f563dabf364b4db31cac63a5f1.png")
+	userKray.CreatedAt = time.Date(2025, 1, 25, 0, 0, 0, 0, time.UTC)
 
 	// Create user and get auto-generated ID
 	_, err = userRepo.CreateUser(ctx, userKray)
@@ -80,6 +82,8 @@ func BootstrapUsers(ctx context.Context, userRepo *repositories.UserRepository) 
 	userTaiko.UpdateAvatarURL("/pfps/e59084c01caf44df3c240a3c78009d080ea02556.png")
 	userTaiko.RewardBadge(value.UserBadgeSuperMegaIllyaFan)
 
+	userTaiko.CreatedAt = time.Date(2025, 1, 25, 0, 0, 0, 0, time.UTC)
+
 	// Create user and get auto-generated ID
 	_, err = userRepo.CreateUser(ctx, userTaiko)
 	if err != nil {
@@ -87,7 +91,8 @@ func BootstrapUsers(ctx context.Context, userRepo *repositories.UserRepository) 
 	}
 	taikoID = userTaiko.ID
 
-	userTest, err := domain.NewUser("Afuradanime", "teste@mail.teste")
+	userTest, err := domain.NewUser("Afuradanime", "afuradanime@gmail.com")
+	userTest.UpdateProviderInformation("google", "102781991376288521134")
 	if err != nil {
 		panic(err)
 	}

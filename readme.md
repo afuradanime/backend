@@ -14,6 +14,7 @@ Um *Backend* desenvolvido em [Go](https://go.dev/), responsável por disponibili
 5. **[JWT for Go](https://github.com/golang-jwt/jwt)** - Implementação de [JWT](https://www.jwt.io/introduction#what-is-json-web-token)'s para auth/authz
 6. **[Mongo Driver](https://go.mongodb.org/mongo-driver)** - Driver para o SGBD [MongoDB](https://www.mongodb.com/)
 7. **[OAuth2 for Go](https://golang.org/x/oauth2)** - Suporte para uso do protocolo de autenticação [OAuth2](https://oauth.net/2/)
+8. **[Rate](https://pkg.go.dev/golang.org/x/time/rate)** - Suporte de rate limiting
 
 ## Documentação da API
 

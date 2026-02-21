@@ -12,10 +12,15 @@ import (
 
 func (a *Application) InitRoutes(r *chi.Mux) {
 
+	// Global rate limiter for all regular application endpoints
+	// 10 Second limiting every 30 bursts
+	globalLimiter := &middlewares.IPRateLimiter{Rps: 10, Burst: 30}
+
 	r.Use(
 		middleware.Logger,
 		middleware.Recoverer, // useful middleware to recover from panics and return a 500 error
 		middlewares.CORSMiddleware,
+		globalLimiter.Middleware,
 	)
 
 	r.Group(func(r chi.Router) {
@@ -136,6 +141,12 @@ func (a *Application) BootstrapAuthModule() chi.Router {
 	googleAuthController := controllers.NewGoogleAuthController(a.OAuth2Config, jwtService, userService)
 
 	r := chi.NewRouter()
+
+	// Rate limiter specific to authentication endpoints
+	// This one must be stricter, as to avoid botted account creations
+	authLimiter := &middlewares.IPRateLimiter{Rps: 2, Burst: 5}
+	r.Use(authLimiter.Middleware)
+
 	r.Get("/google/login", googleAuthController.Login)
 	r.Get("/google/callback", googleAuthController.Callback)
 	r.Get("/me", googleAuthController.WhoAmI)
