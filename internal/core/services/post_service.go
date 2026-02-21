@@ -63,7 +63,8 @@ func (s *PostService) CreatePost(ctx context.Context, parentId string, parentTyp
 			friendship, err := s.friendshipService.FetchFriendshipStatus(ctx, poster.ID, userOfProfileId)
 			if err != nil {
 				return nil, errors.New("failed to fetch friendship status: " + err.Error())
-			} else if friendship.Status == value.FriendshipStatusBlocked {
+			}
+			if friendship != nil && friendship.Status == value.FriendshipStatusBlocked {
 				return nil, domain_errors.UserBlockedError{
 					Initiator: strconv.Itoa(friendship.Initiator),
 					Receiver:  strconv.Itoa(friendship.Receiver),
@@ -109,7 +110,8 @@ func (s *PostService) CreateReply(ctx context.Context, replyToPostID string, tex
 	friendship, err := s.friendshipService.FetchFriendshipStatus(ctx, createdBy, ownerOfPostBeingRepliedTo.ID)
 	if err != nil {
 		return nil, errors.New("failed to fetch friendship status: " + err.Error())
-	} else if friendship.Status == value.FriendshipStatusBlocked {
+	}
+	if friendship != nil && friendship.Status == value.FriendshipStatusBlocked {
 		return nil, domain_errors.UserBlockedError{
 			Initiator: strconv.Itoa(friendship.Initiator),
 			Receiver:  strconv.Itoa(friendship.Receiver),
