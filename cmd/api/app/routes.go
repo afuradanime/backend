@@ -1,40 +1,22 @@
 package app
 
 import (
-	"net/http"
-
 	"github.com/afuradanime/backend/internal/adapters/controllers"
 	"github.com/afuradanime/backend/internal/adapters/middlewares"
 	"github.com/afuradanime/backend/internal/adapters/repositories"
+	"github.com/afuradanime/backend/internal/core/domain/value"
 	"github.com/afuradanime/backend/internal/core/services"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
-// TODO: cors
-func CORSMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		origin := r.Header.Get("Origin")
-		if origin == "" {
-			origin = "http://localhost:5173"
-		}
-
-		w.Header().Set("Access-Control-Allow-Origin", origin)
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-CSRF-Token")
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
-		w.Header().Set("Vary", "Origin")
-
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
 func (a *Application) InitRoutes(r *chi.Mux) {
-	r.Use(CORSMiddleware)
+
+	r.Use(
+		middleware.Logger,
+		middleware.Recoverer, // useful middleware to recover from panics and return a 500 error
+		middlewares.CORSMiddleware,
+	)
 
 	r.Group(func(r chi.Router) {
 		r.Mount("/auth", a.BootstrapAuthModule())
@@ -60,15 +42,18 @@ func (a *Application) BootstrapTranslationsModule() chi.Router {
 
 	r := chi.NewRouter()
 
-	// User routes
+	// Public
 	r.Post("/anime/{animeID}", translationController.SubmitTranslation)
 	r.Get("/anime/{animeID}", translationController.GetAnimeTranslation)
 	r.Get("/me", translationController.GetMyTranslations)
 
-	// Moderation routes
-	r.Put("/{id}/accept", translationController.AcceptTranslation)
-	r.Put("/{id}/reject", translationController.RejectTranslation)
-	r.Get("/pending", translationController.GetPendingTranslations)
+	// Requires moderator
+	r.Group(func(r chi.Router) {
+		r.Use(middlewares.RequireRoleMiddleware(value.UserRoleModerator))
+		r.Put("/{id}/accept", translationController.AcceptTranslation)
+		r.Put("/{id}/reject", translationController.RejectTranslation)
+		r.Get("/pending", translationController.GetPendingTranslations)
+	})
 
 	return r
 }
@@ -79,11 +64,24 @@ func (a *Application) BootstrapUserModule() chi.Router {
 	userController := controllers.NewUserController(userService)
 
 	r := chi.NewRouter()
+
+	// Public
 	r.Get("/", userController.GetUsers)
 	r.Get("/search", userController.SearchByUsername)
 	r.Get("/{id}", userController.GetUserByID)
-	r.Put("/", userController.UpdateUserInfo)
-	r.Put("/{id}/restrict", userController.RestrictAccount)
+
+	// Requires authenticated
+	r.Group(func(r chi.Router) {
+		r.Use(middlewares.JWTMiddleware(a.JWTConfig))
+		r.Put("/", userController.UpdateUserInfo)
+	})
+
+	// Requires moderator
+	r.Group(func(r chi.Router) {
+		r.Use(middlewares.JWTMiddleware(a.JWTConfig))
+		r.Use(middlewares.RequireRoleMiddleware(value.UserRoleModerator))
+		r.Put("/{id}/restrict", userController.RestrictAccount)
+	})
 
 	return r
 }
@@ -113,13 +111,20 @@ func (a *Application) BootstrapFriendsModule() chi.Router {
 	friendshipController := controllers.NewFriendshipController(friendshipService)
 
 	r := chi.NewRouter()
-	r.Put("/send/{receiver}", friendshipController.SendFriendRequest)
-	r.Put("/accept/{initiator}", friendshipController.AcceptFriendRequest)
-	r.Put("/decline/{initiator}", friendshipController.DeclineFriendRequest)
-	r.Put("/block/{receiver}", friendshipController.BlockUser)
+
+	// Public
 	r.Get("/{userID}", friendshipController.ListFriends)
-	r.Get("/pending", friendshipController.ListPendingFriendRequests)
-	r.Get("/check/{receiver}", friendshipController.FetchFriendshipStatus)
+
+	// Requires auth
+	r.Group(func(r chi.Router) {
+		r.Use(middlewares.JWTMiddleware(a.JWTConfig))
+		r.Put("/send/{receiver}", friendshipController.SendFriendRequest)
+		r.Put("/accept/{initiator}", friendshipController.AcceptFriendRequest)
+		r.Put("/decline/{initiator}", friendshipController.DeclineFriendRequest)
+		r.Put("/block/{receiver}", friendshipController.BlockUser)
+		r.Get("/pending", friendshipController.ListPendingFriendRequests)
+		r.Get("/check/{receiver}", friendshipController.FetchFriendshipStatus)
+	})
 
 	return r
 }
@@ -146,10 +151,17 @@ func (a *Application) BootstrapReportsModule() chi.Router {
 	reportController := controllers.NewUserReportController(reportService)
 
 	r := chi.NewRouter()
+
+	// Public
 	r.Post("/{userID}", reportController.SubmitReport)
-	r.Get("/", reportController.GetReports)
-	r.Get("/user/{userID}", reportController.GetReportsByTarget)
-	r.Delete("/{id}", reportController.DeleteReport)
+
+	// Requires moderator
+	r.Group(func(r chi.Router) {
+		r.Use(middlewares.RequireRoleMiddleware(value.UserRoleModerator))
+		r.Get("/", reportController.GetReports)
+		r.Get("/user/{userID}", reportController.GetReportsByTarget)
+		r.Delete("/{id}", reportController.DeleteReport)
+	})
 
 	return r
 }

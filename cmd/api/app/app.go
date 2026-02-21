@@ -11,8 +11,6 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
 )
 
 type Application struct {
@@ -59,22 +57,6 @@ func New() *Application {
 func (app *Application) Run() {
 	// Setup HTTP server
 	r := chi.NewRouter()
-
-	r.Use(
-		middleware.Logger,
-		middleware.Recoverer, // useful middleware to recover from panics and return a 500 error
-	)
-
-	// CORS setup
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{app.Config.FrontendURL, "http://localhost:*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: true,
-		MaxAge:           300,
-	}))
-
 	app.InitRoutes(r)
 
 	log.Println("Server started on port " + app.Config.Port)
