@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/afuradanime/backend/internal/adapters/repositories"
 	"github.com/afuradanime/backend/internal/core/domain"
@@ -30,6 +31,10 @@ func (a *Application) Bootstrap() {
 	// Bootstrap user reports
 	reportRepo := repositories.NewUserReportRepository(a.Mongo)
 	BootstrapReports(context.Background(), reportRepo)
+
+	// Bootstrap a post conversation
+	postRepo := repositories.NewPostRepository(a.Mongo)
+	BootstrapPostConversation(context.Background(), postRepo, krayID, taikoID, testID)
 }
 
 func BootstrapUsers(ctx context.Context, userRepo *repositories.UserRepository) (krayID, taikoID, testID int) {
@@ -140,6 +145,46 @@ func BootstrapReports(ctx context.Context, reportRepo *repositories.UserReportRe
 	report := domain.NewUserReport(value.ReportReasonIllegalActivities, 1, 2)
 	err := reportRepo.CreateReport(ctx, report)
 	if err != nil {
+		panic(err)
+	}
+}
+
+func BootstrapPostConversation(ctx context.Context, postRepo *repositories.PostRepository, krayID int, taikoID int, testID int) {
+
+	post1 := domain.NewPost(strconv.Itoa(krayID), value.ParentTypeUser, "Bem vindos ao meu perfil ⭐!", krayID)
+
+	createdPost1, err := postRepo.CreatePost(ctx, post1)
+	if err != nil {
+		panic(err)
+	}
+
+	post2 := domain.NewPost(createdPost1.ID, value.ParentTypePost, "Belo perfil, votos de bons dias! 👌", taikoID)
+
+	createdPost2, err := postRepo.CreatePost(ctx, post2)
+	if err != nil {
+		panic(err)
+	}
+	if err := postRepo.AddReplyToPost(ctx, createdPost1.ID, createdPost2.ID); err != nil {
+		panic(err)
+	}
+
+	post3 := domain.NewPost(createdPost1.ID, value.ParentTypePost, "Bem vindos ao website também! 😀", krayID)
+
+	createdPost3, err := postRepo.CreatePost(ctx, post3)
+	if err != nil {
+		panic(err)
+	}
+	if err := postRepo.AddReplyToPost(ctx, createdPost1.ID, createdPost3.ID); err != nil {
+		panic(err)
+	}
+
+	post4 := domain.NewPost(createdPost2.ID, value.ParentTypePost, "Bom dia para mim também !? :c", testID)
+
+	createdPost4, err := postRepo.CreatePost(ctx, post4)
+	if err != nil {
+		panic(err)
+	}
+	if err := postRepo.AddReplyToPost(ctx, createdPost2.ID, createdPost4.ID); err != nil {
 		panic(err)
 	}
 }

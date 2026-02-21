@@ -47,6 +47,7 @@ func (a *Application) InitRoutes(r *chi.Mux) {
 		r.Mount("/friends", a.BootstrapFriendsModule())
 		r.Mount("/translations", a.BootstrapTranslationsModule())
 		r.Mount("/reports", a.BootstrapReportsModule())
+		r.Mount("/posts", a.BootstrapPostModule())
 	})
 }
 
@@ -147,6 +148,23 @@ func (a *Application) BootstrapReportsModule() chi.Router {
 	r.Get("/", reportController.GetReports)
 	r.Get("/user/{userID}", reportController.GetReportsByTarget)
 	r.Delete("/{id}", reportController.DeleteReport)
+
+	return r
+}
+
+func (a *Application) BootstrapPostModule() chi.Router {
+	postRepo := repositories.NewPostRepository(a.Mongo)
+	userRepo := repositories.NewUserRepository(a.Mongo)
+	friendshipSvc := services.NewFriendshipService(userRepo, repositories.NewFriendshipRepository(a.Mongo))
+	postService := services.NewPostService(postRepo, userRepo, friendshipSvc)
+	postController := controllers.NewPostController(postService)
+
+	r := chi.NewRouter()
+	r.Get("/{post_id}", postController.GetPostById)
+	r.Get("/{parent_id}/replies", postController.GetPostReplies)
+	r.Post("/", postController.CreatePost)
+	r.Post("/{post_id}/reply", postController.CreateReply)
+	r.Delete("/{post_id}", postController.DeletePost)
 
 	return r
 }
