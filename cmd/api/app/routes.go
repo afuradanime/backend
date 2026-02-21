@@ -95,6 +95,7 @@ func (a *Application) BootstrapAnimeModule() chi.Router {
 
 	r := chi.NewRouter()
 	r.Get("/{id}", animeController.GetAnimeByID)
+	r.Get("/random", animeController.GetRandomAnime)
 	r.Get("/search", animeController.SearchAnime)
 	r.Get("/seasonal", animeController.GetAnimeThisSeason)
 	r.Get("/studio/{id}", animeController.GetAnimeByStudioID)

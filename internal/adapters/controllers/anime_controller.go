@@ -82,6 +82,18 @@ func (ac *AnimeController) GetAnimeByID(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(anime)
 }
 
+func (ac *AnimeController) GetRandomAnime(w http.ResponseWriter, r *http.Request) {
+
+	anime, err := ac.animeService.FetchRandomAnime()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(anime)
+}
+
 func (ac *AnimeController) SearchAnime(w http.ResponseWriter, r *http.Request) {
 	pageNumber, pageSize := utils.GetPaginationParams(r, 50)
 	f := parseAnimeFilters(r)

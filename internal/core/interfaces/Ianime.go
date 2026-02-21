@@ -10,6 +10,7 @@ import (
 // interfaces/anime_repository.go
 type AnimeRepository interface {
 	FetchAnimeByID(animeID uint32) (*domain.Anime, error)
+	FetchRandomAnime() (*domain.Anime, error)
 	FetchAnimeFromQuery(filters filters.AnimeFilter, pageNumber, pageSize int) ([]*domain.Anime, utils.Pagination, error)
 	FetchAnimeThisSeason(filters filters.AnimeFilter, pageNumber, pageSize int) ([]*domain.Anime, utils.Pagination, error)
 	FetchStudioByID(studioID uint32, filters filters.AnimeFilter, pageNumber, pageSize int) (*value.Studio, []*domain.Anime, utils.Pagination, error)
@@ -20,6 +21,7 @@ type AnimeRepository interface {
 
 type AnimeService interface {
 	FetchAnimeByID(animeID uint32) (*domain.Anime, error)
+	FetchRandomAnime() (*domain.Anime, error)
 	FetchAnimeFromQuery(filters filters.AnimeFilter, pageNumber, pageSize int) ([]*domain.Anime, utils.Pagination, error)
 	FetchAnimeThisSeason(filters filters.AnimeFilter, pageNumber, pageSize int) ([]*domain.Anime, utils.Pagination, error)
 

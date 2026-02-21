@@ -20,6 +20,10 @@ func (s *AnimeService) FetchAnimeByID(animeID uint32) (*domain.Anime, error) {
 	return s.repo.FetchAnimeByID(animeID)
 }
 
+func (s *AnimeService) FetchRandomAnime() (*domain.Anime, error) {
+	return s.repo.FetchRandomAnime()
+}
+
 func (s *AnimeService) FetchAnimeFromQuery(filters filters.AnimeFilter, pageNumber, pageSize int) ([]*domain.Anime, utils.Pagination, error) {
 	return s.repo.FetchAnimeFromQuery(filters, pageNumber, pageSize)
 }

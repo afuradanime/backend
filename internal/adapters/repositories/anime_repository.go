@@ -11,7 +11,6 @@ package repositories
 import "C"
 
 import (
-	"errors"
 	"strconv"
 	"unsafe"
 
@@ -19,6 +18,7 @@ import (
 	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/domain/filters"
 	"github.com/afuradanime/backend/internal/core/domain/value"
+	domain_errors "github.com/afuradanime/backend/internal/core/errors"
 	"github.com/afuradanime/backend/internal/core/utils"
 )
 
@@ -82,7 +82,35 @@ func (r *AnimeRepository) FetchAnimeByID(animeID uint32) (*domain.Anime, error) 
 	rc := C.fetch_anime_by_id(C.uint(animeID), &animePtr)
 
 	if rc != 0 {
-		return nil, errors.New("There's no Anime with id " + strconv.Itoa(int(animeID)))
+		return nil, domain_errors.AnimeNotFoundError{
+			AnimeID: strconv.Itoa(int(animeID)),
+		}
+	}
+
+	// Convert the C struct to a Go struct
+	anime, err := r.animeMapper.CtoGo(unsafe.Pointer(&animePtr))
+
+	// now it's handled by the go GC
+	// so we may free it
+	C.free_anime(&animePtr)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return anime, nil
+}
+
+func (r *AnimeRepository) FetchRandomAnime() (*domain.Anime, error) {
+
+	// Query the dll for an anime id, get the pointed data
+	var animePtr C.anime_t
+	rc := C.fetch_random_anime(&animePtr)
+
+	if rc != 0 {
+		return nil, domain_errors.AnimeNotFoundError{
+			AnimeID: "",
+		}
 	}
 
 	// Convert the C struct to a Go struct
@@ -113,7 +141,7 @@ func (r *AnimeRepository) FetchAnimeFromQuery(filters filters.AnimeFilter, pageN
 
 	rc := C.fetch_anime_from_query(cFilter, page, &count, &totalPages, &animeArray)
 	if rc != 0 {
-		return nil, utils.Pagination{}, errors.New("Failed to fetch anime from query")
+		return nil, utils.Pagination{}, domain_errors.AnimeFetchFailedError{}
 	}
 
 	if count == 0 {
@@ -165,7 +193,7 @@ func (r *AnimeRepository) FetchAnimeThisSeason(filters filters.AnimeFilter, page
 
 	rc := C.fetch_anime_this_season(cFilter, page, &count, &totalPages, &animeArray)
 	if rc != 0 {
-		return nil, utils.Pagination{}, errors.New("Failed to fetch anime this season")
+		return nil, utils.Pagination{}, domain_errors.AnimeFetchFailedError{}
 	}
 
 	if count == 0 {
@@ -215,7 +243,7 @@ func (r *AnimeRepository) FetchStudioByID(studioID uint32, filters filters.Anime
 
 	rc := C.fetch_studio_by_id(C.uint(studioID), cFilter, &studioPtr, page, &count, &totalPages, &animeArray)
 	if rc != 0 {
-		return nil, nil, utils.Pagination{}, errors.New("No studio found with id " + strconv.Itoa(int(studioID)))
+		return nil, nil, utils.Pagination{}, domain_errors.StudioNotFoundError{}
 	}
 	defer C.free_studio(&studioPtr)
 
@@ -267,7 +295,7 @@ func (r *AnimeRepository) FetchProducerByID(producerID uint32, filters filters.A
 
 	rc := C.fetch_producer_by_id(C.uint(producerID), cFilter, &producerPtr, page, &count, &totalPages, &animeArray)
 	if rc != 0 {
-		return nil, nil, utils.Pagination{}, errors.New("No producer found with id " + strconv.Itoa(int(producerID)))
+		return nil, nil, utils.Pagination{}, domain_errors.ProducerNotFoundError{}
 	}
 	defer C.free_producer(&producerPtr)
 
@@ -319,7 +347,7 @@ func (r *AnimeRepository) FetchLicensorByID(licensorID uint32, filters filters.A
 
 	rc := C.fetch_licensor_by_id(C.uint(licensorID), cFilter, &licensorPtr, page, &count, &totalPages, &animeArray)
 	if rc != 0 {
-		return nil, nil, utils.Pagination{}, errors.New("No licensor found with id " + strconv.Itoa(int(licensorID)))
+		return nil, nil, utils.Pagination{}, domain_errors.LicensorNotFoundError{}
 	}
 	defer C.free_licensor(&licensorPtr)
 
@@ -370,7 +398,7 @@ func (r *AnimeRepository) FetchAnimeFromTag(tagID uint32, f filters.AnimeFilter,
 
 	rc := C.fetch_anime_from_tag(C.uint(tagID), cFilter, page, &count, &totalPages, &animeArray)
 	if rc != 0 {
-		return nil, utils.Pagination{}, errors.New("Failed to fetch anime from tag " + strconv.Itoa(int(tagID)))
+		return nil, utils.Pagination{}, domain_errors.AnimeFetchFailedError{}
 	}
 
 	if count == 0 {
