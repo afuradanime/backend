@@ -15,6 +15,8 @@ type Config struct {
 	MongoConnectionString string
 	MongoUsername         string
 	MongoPassword         string
+	MongoDatabase         string
+	EncryptionKey         string
 }
 
 func Load() *Config {
@@ -31,5 +33,7 @@ func Load() *Config {
 		MongoConnectionString: os.Getenv("MONGO_CONNECTION_STRING"),
 		MongoUsername:         os.Getenv("MONGO_USERNAME"),
 		MongoPassword:         os.Getenv("MONGO_PASSWORD"),
+		MongoDatabase:         os.Getenv("MONGO_DATABASE"),
+		EncryptionKey:         os.Getenv("ENCRYPTION_KET"),
 	}
 }

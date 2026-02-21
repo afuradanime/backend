@@ -7,6 +7,7 @@ import (
 
 	value "github.com/afuradanime/backend/internal/core/domain/value"
 	domain_errors "github.com/afuradanime/backend/internal/core/errors"
+	"github.com/afuradanime/backend/internal/core/utils"
 )
 
 const MAX_SOCIALS = 5
@@ -15,7 +16,7 @@ type User struct {
 	ID int `json:"ID" bson:"_id"`
 
 	// Identity
-	Email     value.Email    `json:"Email" bson:"email"`
+	Email     string         `json:"Email" bson:"email"` // Will be encrypted
 	Username  value.Username `json:"Username" bson:"username"`
 	AvatarURL string         `json:"AvatarURL" bson:"avatar_url"`
 
@@ -33,7 +34,7 @@ type User struct {
 
 	// Authentication / Authorization
 	Provider   string           `json:"Provider" bson:"provider"`
-	ProviderID string           `json:"ProviderID" bson:"provider_id"`
+	ProviderID string           `json:"ProviderID" bson:"provider_id"` // Will be encrypted
 	Roles      []value.UserRole `json:"Roles" bson:"roles"`
 
 	Badges []value.UserBadges `json:"Badges" bson:"badges"`
@@ -55,10 +56,15 @@ func NewUser(username string, email string) (*User, error) {
 		return nil, err
 	}
 
+	encryptedEmail, err := utils.EncryptToString([]byte(*newEmail))
+	if err != nil {
+		return nil, err
+	}
+
 	return &User{
 		// ID will be set by mongo auto-increment
 		Username:              *newUsername,
-		Email:                 *newEmail,
+		Email:                 encryptedEmail,
 		Socials:               make([]value.URL, 0),
 		Roles:                 []value.UserRole{value.UserRoleUser},
 		AllowsFriendRequests:  true,
@@ -75,7 +81,27 @@ func (u *User) UpdateEmail(email string) error {
 	if err != nil {
 		return err
 	}
-	u.Email = *newEmail
+
+	encryptedEmail, err := utils.EncryptToString([]byte(*newEmail))
+	if err != nil {
+		return err
+	}
+
+	u.Email = encryptedEmail
+	return nil
+}
+
+func (u *User) UpdateProviderInformation(provider, id string) error {
+
+	u.Provider = provider
+
+	// Not really, we need to query by this
+	// encryptedProviderId, err := utils.EncryptToString([]byte(id))
+	// if err != nil {
+	// 	return err
+	// }
+
+	u.ProviderID = id
 	return nil
 }
 

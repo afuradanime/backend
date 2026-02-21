@@ -6,6 +6,7 @@ import (
 
 	"github.com/afuradanime/backend/cmd/api/app/database"
 	"github.com/afuradanime/backend/config"
+	"github.com/afuradanime/backend/internal/core/utils"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/oauth2"
 
@@ -37,8 +38,11 @@ func New() *Application {
 		log.Fatal("Failed to initialize MongoDB: ", err)
 	}
 
+	// Start encryption service
+	utils.InitEncryption(Config.EncryptionKey)
+
 	app := &Application{
-		Mongo:        mongoClient.Database("afuradanime"),
+		Mongo:        mongoClient.Database(Config.MongoDatabase),
 		Config:       Config,
 		OAuth2Config: OAuth2,
 		JWTConfig:    JWTConfig,

@@ -67,9 +67,7 @@ func BootstrapUsers(ctx context.Context, userRepo *repositories.UserRepository) 
 		panic(err)
 	}
 
-	userTaiko.Provider = "google"
-	userTaiko.ProviderID = "111642040238696442904"
-
+	userTaiko.UpdateProviderInformation("google", "111642040238696442904")
 	userTaiko.UpdateLocation("Porto")
 	userTaiko.UpdateSocials([]string{
 		"https://x.com/Sagiri719",

@@ -137,8 +137,9 @@ func (gac *GoogleAuthController) Callback(w http.ResponseWriter, r *http.Request
 		}
 
 		// Set provider info in model
-		user_model.Provider = "google"
-		user_model.ProviderID = userInfo.ID
+		// user_model.Provider = "google"
+		// user_model.ProviderID = userInfo.ID
+		user_model.UpdateProviderInformation("google", userInfo.ID)
 		user_model.AvatarURL = userInfo.Picture
 
 		// Register the user
