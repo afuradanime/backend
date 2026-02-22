@@ -95,15 +95,15 @@ func (c *DescriptionTranslationController) GetPendingTranslations(w http.Respons
 	})
 }
 
-func (c *DescriptionTranslationController) GetMyTranslations(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middlewares.GetUserIDFromContext(r)
-	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+func (c *DescriptionTranslationController) GetUserTranslations(w http.ResponseWriter, r *http.Request) {
+	userIDStr := chi.URLParam(r, "userID")
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
 	pageNumber, pageSize := utils.GetPaginationParams(r, 20)
-
 	translations, pagination, err := c.translationService.GetMyTranslations(r.Context(), userID, pageNumber, pageSize)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
