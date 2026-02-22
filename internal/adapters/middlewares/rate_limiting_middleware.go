@@ -10,8 +10,8 @@ import (
 // Rate limiting by IP
 type IPRateLimiter struct {
 	limiters sync.Map // concurrent safe map
-	Rps      float64
-	Burst    int
+	Rps      float64  // How many token refreshes an ip gets per second (e.g: Burst = 10 means new token every 100ms)
+	Burst    int      // How many requests can be made "instantly"
 }
 
 // rate.Limiter uses https://en.wikipedia.org/wiki/Token_bucket

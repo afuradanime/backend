@@ -144,7 +144,7 @@ func (a *Application) BootstrapAuthModule() chi.Router {
 
 	// Rate limiter specific to authentication endpoints
 	// This one must be stricter, as to avoid botted account creations
-	authLimiter := &middlewares.IPRateLimiter{Rps: 2, Burst: 5}
+	authLimiter := &middlewares.IPRateLimiter{Rps: 0.5, Burst: 3}
 	r.Use(authLimiter.Middleware)
 
 	r.Get("/google/login", googleAuthController.Login)
