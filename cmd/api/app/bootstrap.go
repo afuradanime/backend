@@ -8,6 +8,8 @@ import (
 	"github.com/afuradanime/backend/internal/adapters/repositories"
 	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/domain/value"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func (a *Application) Bootstrap() {
@@ -36,6 +38,9 @@ func (a *Application) Bootstrap() {
 	// Bootstrap a post conversation
 	postRepo := repositories.NewPostRepository(a.Mongo)
 	BootstrapPostConversation(context.Background(), postRepo, krayID, taikoID, testID)
+
+	// Database Indices
+	BootstrapIndices(context.Background(), a.Mongo)
 }
 
 func BootstrapUsers(ctx context.Context, userRepo *repositories.UserRepository) (krayID, taikoID, testID int) {
@@ -190,4 +195,12 @@ func BootstrapPostConversation(ctx context.Context, postRepo *repositories.PostR
 	if err := postRepo.AddReplyToPost(ctx, createdPost2.ID, createdPost4.ID); err != nil {
 		panic(err)
 	}
+}
+
+func BootstrapIndices(ctx context.Context, m *mongo.Database) {
+
+	m.Collection("recommendations").Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "receiver", Value: 1}, {Key: "seen", Value: 1}}},
+		{Keys: bson.D{{Key: "initiator", Value: 1}, {Key: "receiver", Value: 1}, {Key: "anime", Value: 1}}},
+	})
 }

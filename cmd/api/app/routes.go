@@ -26,15 +26,18 @@ func (a *Application) InitRoutes(r *chi.Mux) {
 	r.Group(func(r chi.Router) {
 		r.Mount("/auth", a.BootstrapAuthModule())
 		r.Mount("/anime", a.BootstrapAnimeModule())
+
+		// Partially public
 		r.Mount("/users", a.BootstrapUserModule())
+		r.Mount("/friends", a.BootstrapFriendsModule())
+		r.Mount("/translations", a.BootstrapTranslationsModule())
 	})
 
 	r.Group(func(r chi.Router) {
 		r.Use(middlewares.JWTMiddleware(a.JWTConfig))
-		r.Mount("/friends", a.BootstrapFriendsModule())
-		r.Mount("/translations", a.BootstrapTranslationsModule())
 		r.Mount("/reports", a.BootstrapReportsModule())
 		r.Mount("/posts", a.BootstrapPostModule())
+		r.Mount("/recommendations", a.BootstrapRecommendationsModule())
 	})
 }
 
@@ -50,7 +53,7 @@ func (a *Application) BootstrapTranslationsModule() chi.Router {
 	// Public
 	r.Post("/anime/{animeID}", translationController.SubmitTranslation)
 	r.Get("/anime/{animeID}", translationController.GetAnimeTranslation)
-	r.Get("/me", translationController.GetMyTranslations)
+	r.Get("/user/{userID}", translationController.GetUserTranslations)
 
 	// Requires moderator
 	r.Group(func(r chi.Router) {
@@ -163,7 +166,6 @@ func (a *Application) BootstrapReportsModule() chi.Router {
 
 	r := chi.NewRouter()
 
-	// Public
 	r.Post("/{userID}", reportController.SubmitReport)
 
 	// Requires moderator
@@ -190,6 +192,21 @@ func (a *Application) BootstrapPostModule() chi.Router {
 	r.Post("/", postController.CreatePost)
 	r.Post("/{post_id}/reply", postController.CreateReply)
 	r.Delete("/{post_id}", postController.DeletePost)
+
+	return r
+}
+
+func (a *Application) BootstrapRecommendationsModule() chi.Router {
+
+	repo := repositories.NewRecommendationRepository(a.Mongo)
+	userRepo := repositories.NewUserRepository(a.Mongo)
+	service := services.NewRecommendationService(repo, userRepo)
+	controller := controllers.NewRecommendationController(service)
+
+	r := chi.NewRouter()
+	r.Post("/{receiverID}/{animeID}", controller.Send)
+	r.Get("/", controller.GetMine)
+	r.Delete("/{animeID}", controller.Dismiss)
 
 	return r
 }
