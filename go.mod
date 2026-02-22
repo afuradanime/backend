@@ -7,10 +7,10 @@ require github.com/go-chi/chi/v5 v5.2.4
 require github.com/joho/godotenv v1.5.1
 
 require (
-	github.com/go-chi/cors v1.2.2
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	go.mongodb.org/mongo-driver v1.17.9
 	golang.org/x/oauth2 v0.35.0
+	golang.org/x/time v0.14.0
 )
 
 require (
@@ -24,5 +24,4 @@ require (
 	golang.org/x/crypto v0.26.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/text v0.17.0 // indirect
-	golang.org/x/time v0.14.0 // indirect
 )

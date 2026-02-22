@@ -1,0 +1,32 @@
+@startuml anime_aggregate
+hide circle
+title Anilist Domain
+
+entity AnimeList {
+	UserId
+	AnilistItems
+}
+
+entity AnimeListItem {
+	AnimeId
+	Status
+	EpisodesWatched
+	Rating
+	Notes
+	RewatchCount
+	CreatedAt
+	EditedAt
+}
+
+entity Rating {
+	Overall
+	Story
+	Visuals
+	Soundtrack
+	Enjoyment
+}
+
+AnimeList "1" --> "0..*" AnimeListItem
+AnimeListItem "1" --> "1" Rating
+
+@enduml
