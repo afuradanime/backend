@@ -31,6 +31,7 @@ func (a *Application) InitRoutes(r *chi.Mux) {
 		r.Mount("/users", a.BootstrapUserModule())
 		r.Mount("/friends", a.BootstrapFriendsModule())
 		r.Mount("/translations", a.BootstrapTranslationsModule())
+		r.Mount("/animelist", a.BootstrapAnimeListModule())
 	})
 
 	r.Group(func(r chi.Router) {
@@ -207,6 +208,34 @@ func (a *Application) BootstrapRecommendationsModule() chi.Router {
 	r.Post("/{receiverID}/{animeID}", controller.Send)
 	r.Get("/", controller.GetMine)
 	r.Delete("/{animeID}", controller.Dismiss)
+
+	return r
+}
+
+func (a *Application) BootstrapAnimeListModule() chi.Router {
+	listRepo := repositories.NewAnimeListRepository(a.Mongo)
+	animeRepo := repositories.NewAnimeRepository()
+
+	listService := services.NewAnimeListService(listRepo, animeRepo)
+
+	listController := controllers.NewAnimeListController(listService)
+
+	r := chi.NewRouter()
+
+	// Getting any user's list, completely public
+	r.Get("/{userId}", listController.GetUserList)
+
+	r.Group(func(r chi.Router) {
+		// Requires auth because the user is editing their own list
+		r.Use(middlewares.JWTMiddleware(a.JWTConfig))
+
+		r.Post("/{userId}/{animeId}", listController.AddAnime)
+		r.Patch("/{userId}/progress/{animeId}", listController.UpdateProgress)
+		r.Patch("/{userId}/status/{animeId}", listController.UpdateStatus)
+		r.Patch("/{userId}/notes/{animeId}", listController.UpdateNotes)
+		r.Patch("/{userId}/rating/{animeId}", listController.UpdateRating)
+		r.Delete("/{userId}/{animeId}", listController.RemoveAnimeFromList)
+	})
 
 	return r
 }
