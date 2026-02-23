@@ -39,6 +39,10 @@ func (a *Application) Bootstrap() {
 	postRepo := repositories.NewPostRepository(a.Mongo)
 	BootstrapPostConversation(context.Background(), postRepo, krayID, taikoID, testID)
 
+	// Bootstrap animelist
+	animeListRepo := repositories.NewAnimeListRepository(a.Mongo)
+	BootstrapAnimeList(context.Background(), animeListRepo, krayID)
+
 	// Database Indices
 	BootstrapIndices(context.Background(), a.Mongo)
 }
@@ -203,4 +207,16 @@ func BootstrapIndices(ctx context.Context, m *mongo.Database) {
 		{Keys: bson.D{{Key: "receiver", Value: 1}, {Key: "seen", Value: 1}}},
 		{Keys: bson.D{{Key: "initiator", Value: 1}, {Key: "receiver", Value: 1}, {Key: "anime", Value: 1}}},
 	})
+}
+
+func BootstrapAnimeList(ctx context.Context, animeListRepo *repositories.AnimeListRepository, userID int) {
+	testEntry := domain.NewAnimeListItem(userID, 1, value.AnimeListItemStatusWatching)
+	testEntry.UpdateProgress(5, 12)
+	testEntry.UpdateNotes("Cowboy.")
+	testEntry.AddRating(8, 9, 7, 8)
+
+	err := animeListRepo.AddListItem(ctx, testEntry)
+	if err != nil {
+		panic(err)
+	}
 }
