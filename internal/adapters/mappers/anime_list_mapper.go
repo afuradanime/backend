@@ -13,39 +13,39 @@ func NewAnimeListMapper() *AnimeListMapper {
 	return &AnimeListMapper{}
 }
 
-func (m *AnimeListMapper) ToDto(li *domain.AnimeListItem, anime *domain.Anime) *dtos.AnimeListItemDTO {
-	return &dtos.AnimeListItemDTO{
+func (m *AnimeListMapper) ToDto(li *domain.UserListItem, anime *domain.Anime) *dtos.UserListItemDTO {
+	return &dtos.UserListItemDTO{
 		AnimeID:         anime.ID,
 		AnimeTitle:      anime.Title,
 		AnimeEpisodes:   anime.Episodes,
 		AnimeCoverURL:   anime.ImageURL,
 		Status:          uint8(li.Status),
-		EpisodesWatched: li.EpisodesWatched,
+		EpisodesWatched: uint32(li.EpisodesWatched),
 		Rating:          mapRatingToDto(li.Rating),
 		Notes:           li.Notes,
 		RewatchCount:    li.RewatchCount,
-		CreatedAt:       li.CreatedAt.Format(time.RFC3339),
-		EditedAt:        mapTimePtr(li.EditedAt),
+		CreatedAt:       mapTime(li.CreatedAt),
+		EditedAt:        mapTime(li.EditedAt),
 	}
 }
 
-func mapRatingToDto(rating *domain.Rating) *dtos.RatingDTO {
+func mapRatingToDto(rating *uint16) *dtos.RatingDTO {
 	if rating == nil {
 		return nil
 	}
+
+	r := domain.Uint16ToRating(*rating)
+
 	return &dtos.RatingDTO{
-		Overall:    rating.Overall,
-		Story:      rating.Story,
-		Visuals:    rating.Visuals,
-		Soundtrack: rating.Soundtrack,
-		Enjoyment:  rating.Enjoyment,
+		Overall:    r.Overall,
+		Story:      r.Story,
+		Visuals:    r.Visuals,
+		Soundtrack: r.Soundtrack,
 	}
 }
 
-func mapTimePtr(t *time.Time) *string {
-	if t == nil {
-		return nil
-	}
-	str := t.Format(time.RFC3339)
-	return &str
+func mapTime(t uint32) *string {
+
+	parsedTime := time.Unix(int64(t), 0).Format(time.RFC3339)
+	return &parsedTime
 }

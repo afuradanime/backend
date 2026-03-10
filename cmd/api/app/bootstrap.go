@@ -210,13 +210,27 @@ func BootstrapIndices(ctx context.Context, m *mongo.Database) {
 }
 
 func BootstrapAnimeList(ctx context.Context, animeListRepo *repositories.AnimeListRepository, userID int) {
+	testList := domain.NewPersonalAnimeList(userID)
+
 	testEntry := domain.NewAnimeListItem(userID, 1, value.AnimeListItemStatusWatching)
 	testEntry.UpdateProgress(5, 12)
 	testEntry.UpdateNotes("Cowboy.")
-	testEntry.AddRating(8, 9, 7, 8)
+	testEntry.AddRating(8, 9, 7)
+	testList.AddListItem(*testEntry)
 
-	err := animeListRepo.AddListItem(ctx, testEntry)
-	if err != nil {
+	SuperFunnyListFiller3000(testList, userID, 24000)
+
+	if err := animeListRepo.SaveUserList(ctx, testList); err != nil {
 		panic(err)
+	}
+}
+
+func SuperFunnyListFiller3000(list *domain.UserAnimeList, userID, limit int) {
+	for i := 1; i <= limit; i++ {
+		entry := domain.NewAnimeListItem(userID, uint32(i), value.AnimeListItemStatusWatching)
+		entry.UpdateProgress(uint32(i%12), 12)
+		entry.UpdateNotes("Anime número " + strconv.Itoa(i))
+		entry.AddRating(uint8((i%10)+1), uint8((i%10)+1), uint8((i%10)+1))
+		list.AddListItem(*entry)
 	}
 }

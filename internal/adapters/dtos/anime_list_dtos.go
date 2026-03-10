@@ -1,6 +1,11 @@
 package dtos
 
-type AnimeListItemDTO struct {
+type UserAnimeListDTO struct {
+	UserID        int                `json:"userId"`
+	UserListItems []*UserListItemDTO `json:"userListItems"`
+}
+
+type UserListItemDTO struct {
 	// Anime Info
 	AnimeID       uint32 `json:"animeId"`
 	AnimeTitle    string `json:"animeTitle"`
@@ -12,7 +17,7 @@ type AnimeListItemDTO struct {
 	Rating          *RatingDTO `json:"rating,omitempty"`
 	Notes           *string    `json:"notes,omitempty"`
 	RewatchCount    uint8      `json:"rewatchCount"`
-	CreatedAt       string     `json:"createdAt"`
+	CreatedAt       *string    `json:"createdAt"`
 	EditedAt        *string    `json:"editedAt,omitempty"`
 }
 

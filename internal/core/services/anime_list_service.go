@@ -28,13 +28,14 @@ func NewAnimeListService(listRepo interfaces.AnimeListRepository, animeRepo inte
 	}
 }
 
-func (s *AnimeListService) AddAnimeToList(ctx context.Context, userID int, animeID uint32, status value.AnimeListItemStatus) (*dtos.AnimeListItemDTO, error) {
-	// Checkpoint 1 - User already has this anime in their list?
-	item, err := getAndValidateAnimeInList(ctx, s.listRepo, userID, animeID)
+func (s *AnimeListService) AddAnimeToList(ctx context.Context, userID int, animeID uint32, status value.AnimeListItemStatus) (*domain.UserListItem, error) {
+	list, err := s.getOrCreateUserList(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	if item != nil {
+
+	// Checkpoint 1 - User already has this anime in their list?
+	if _, exists := list.GetListItem(animeID); exists {
 		return nil, &domain_errors.AnimeAlreadyInListError{
 			UserID:  strconv.Itoa(userID),
 			AnimeID: strconv.Itoa(int(animeID)),
@@ -60,21 +61,32 @@ func (s *AnimeListService) AddAnimeToList(ctx context.Context, userID int, anime
 		_ = newItem.UpdateProgress(anime.Episodes, anime.Episodes)
 	}
 
-	if err := s.listRepo.AddListItem(ctx, newItem); err != nil {
+	list.AddListItem(*newItem)
+
+	if err := s.listRepo.SaveUserList(ctx, list); err != nil {
 		return nil, err
 	}
 
-	return s.mapper.ToDto(newItem, anime), nil
+	return newItem, nil
 }
 
-func (s *AnimeListService) UpdateProgress(ctx context.Context, userID int, animeID uint32, episodesWatched uint32) error {
-	// Get list item
-	item, err := getAndValidateAnimeInList(ctx, s.listRepo, userID, animeID)
+func (s *AnimeListService) RemoveAnimeFromList(ctx context.Context, userID int, animeID uint32) error {
+	list, err := s.getUserListWithItem(ctx, userID, animeID)
 	if err != nil {
 		return err
 	}
 
-	// Get anime
+	list.RemoveListItem(animeID)
+
+	return s.listRepo.SaveUserList(ctx, list)
+}
+
+func (s *AnimeListService) UpdateProgress(ctx context.Context, userID int, animeID uint32, episodesWatched uint32) error {
+	list, item, err := s.getListAndItem(ctx, userID, animeID)
+	if err != nil {
+		return err
+	}
+
 	anime, err := s.animeRepo.FetchAnimeByID(animeID)
 	if err != nil || anime == nil {
 		return errors.New("failed to fetch anime metadata for validation")
@@ -84,24 +96,21 @@ func (s *AnimeListService) UpdateProgress(ctx context.Context, userID int, anime
 		return err
 	}
 
-	return s.listRepo.UpdateListItem(ctx, item)
+	return s.listRepo.SaveUserList(ctx, list)
 }
 
 func (s *AnimeListService) UpdateStatus(ctx context.Context, userID int, animeID uint32, newStatus value.AnimeListItemStatus) error {
-	// Get list item
-	item, err := getAndValidateAnimeInList(ctx, s.listRepo, userID, animeID)
+	list, item, err := s.getListAndItem(ctx, userID, animeID)
 	if err != nil {
 		return err
 	}
 
-	// Same status as before, no update needed
 	if item.Status == newStatus {
 		return nil
 	}
 
 	item.UpdateStatus(newStatus)
 
-	// completed therefore they watched all episodes
 	if newStatus == value.AnimeListItemStatusCompleted {
 		anime, _ := s.animeRepo.FetchAnimeByID(animeID)
 		if anime != nil && anime.Episodes > 0 {
@@ -109,12 +118,11 @@ func (s *AnimeListService) UpdateStatus(ctx context.Context, userID int, animeID
 		}
 	}
 
-	return s.listRepo.UpdateListItem(ctx, item)
+	return s.listRepo.SaveUserList(ctx, list)
 }
 
 func (s *AnimeListService) UpdateNotes(ctx context.Context, userID int, animeID uint32, notes string) error {
-	// Get list item
-	item, err := getAndValidateAnimeInList(ctx, s.listRepo, userID, animeID)
+	list, item, err := s.getListAndItem(ctx, userID, animeID)
 	if err != nil {
 		return err
 	}
@@ -123,29 +131,35 @@ func (s *AnimeListService) UpdateNotes(ctx context.Context, userID int, animeID 
 		return err
 	}
 
-	return s.listRepo.UpdateListItem(ctx, item)
+	return s.listRepo.SaveUserList(ctx, list)
 }
 
-func (s *AnimeListService) UpdateRating(ctx context.Context, userID int, animeID uint32, story, visuals, soundtrack, enjoyment uint8) error {
-	// Get list item
-	item, err := getAndValidateAnimeInList(ctx, s.listRepo, userID, animeID)
+func (s *AnimeListService) UpdateRating(ctx context.Context, userID int, animeID uint32, story, visuals, soundtrack uint8) error {
+	list, item, err := s.getListAndItem(ctx, userID, animeID)
 	if err != nil {
 		return err
 	}
 
-	if err := item.AddRating(story, visuals, soundtrack, enjoyment); err != nil {
+	if err := item.AddRating(story, visuals, soundtrack); err != nil {
 		return err
 	}
 
-	return s.listRepo.UpdateListItem(ctx, item)
+	return s.listRepo.SaveUserList(ctx, list)
 }
 
-func (s *AnimeListService) RemoveAnimeFromList(ctx context.Context, userID int, animeID uint32) error {
-	return s.listRepo.DeleteListItem(ctx, userID, animeID)
+func (s *AnimeListService) RemoveRating(ctx context.Context, userID int, animeID uint32) error {
+	list, item, err := s.getListAndItem(ctx, userID, animeID)
+	if err != nil {
+		return err
+	}
+
+	item.RemoveRating()
+
+	return s.listRepo.SaveUserList(ctx, list)
 }
 
-func (s *AnimeListService) FetchUserListItem(ctx context.Context, userID int, animeID uint32) (*dtos.AnimeListItemDTO, error) {
-	item, err := getAndValidateAnimeInList(ctx, s.listRepo, userID, animeID)
+func (s *AnimeListService) FetchUserListItem(ctx context.Context, userID int, animeID uint32) (*dtos.UserListItemDTO, error) {
+	_, item, err := s.getListAndItem(ctx, userID, animeID)
 	if err != nil {
 		return nil, err
 	}
@@ -158,43 +172,81 @@ func (s *AnimeListService) FetchUserListItem(ctx context.Context, userID int, an
 	return s.mapper.ToDto(item, anime), nil
 }
 
-func (s *AnimeListService) FetchUserList(ctx context.Context, userID int, status *value.AnimeListItemStatus) ([]*dtos.AnimeListItemDTO, error) {
-	listItems, err := s.listRepo.FetchUserList(ctx, userID, status)
+func (s *AnimeListService) FetchUserList(ctx context.Context, userID int, status *value.AnimeListItemStatus) (*dtos.UserAnimeListDTO, error) {
+	list, err := s.listRepo.FetchUserList(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(listItems) == 0 {
-		return make([]*dtos.AnimeListItemDTO, 0), nil
+	items := list.UserListItems
+
+	// Filter by status in the service layer
+	if status != nil {
+		filtered := items[:0]
+		for _, item := range items {
+			if item.Status == *status {
+				filtered = append(filtered, item)
+			}
+		}
+		items = filtered
 	}
 
-	result := make([]*dtos.AnimeListItemDTO, 0, len(listItems))
-
-	for _, item := range listItems {
-
-		anime, err := s.animeRepo.FetchAnimeByID(item.AnimeID)
+	result := make([]*dtos.UserListItemDTO, 0, len(items))
+	for _, item := range items {
+		anime, err := s.animeRepo.FetchAnimeByID(uint32(item.AnimeID))
 		if err != nil || anime == nil {
 			log.Printf("Anime %d was not found for user %d (?)", item.AnimeID, userID)
 			continue
 		}
-
-		dto := s.mapper.ToDto(item, anime)
-		result = append(result, dto)
+		item := item // capture loop var for pointer safety
+		result = append(result, s.mapper.ToDto(&item, anime))
 	}
 
-	return result, nil
+	return &dtos.UserAnimeListDTO{
+		UserID:        list.UserID,
+		UserListItems: result,
+	}, nil
 }
 
-func getAndValidateAnimeInList(ctx context.Context, listRepo interfaces.AnimeListRepository, userID int, animeID uint32) (*domain.AnimeListItem, error) {
-	item, err := listRepo.FetchItemByUserAndAnime(ctx, userID, animeID)
+func (s *AnimeListService) getOrCreateUserList(ctx context.Context, userID int) (*domain.UserAnimeList, error) {
+	list, err := s.listRepo.FetchUserList(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	if item == nil {
+	if list == nil {
+		list = domain.NewPersonalAnimeList(userID)
+	}
+	return list, nil
+}
+
+// fetch the list and validates the anime is present in it.
+func (s *AnimeListService) getUserListWithItem(ctx context.Context, userID int, animeID uint32) (*domain.UserAnimeList, error) {
+	list, err := s.listRepo.FetchUserList(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if list == nil {
 		return nil, &domain_errors.AnimeNotInListError{
 			UserID:  strconv.Itoa(userID),
 			AnimeID: strconv.Itoa(int(animeID)),
 		}
 	}
-	return item, nil
+	if _, exists := list.GetListItem(animeID); !exists {
+		return nil, &domain_errors.AnimeNotInListError{
+			UserID:  strconv.Itoa(userID),
+			AnimeID: strconv.Itoa(int(animeID)),
+		}
+	}
+	return list, nil
+}
+
+// fetch the list and returns both the list and a pointer to the specific item.
+// The pointer is into the list's slice, so mutations to the item are reflected when saving the list.
+func (s *AnimeListService) getListAndItem(ctx context.Context, userID int, animeID uint32) (*domain.UserAnimeList, *domain.UserListItem, error) {
+	list, err := s.getUserListWithItem(ctx, userID, animeID)
+	if err != nil {
+		return nil, nil, err
+	}
+	item, _ := list.GetListItem(animeID)
+	return list, item, nil
 }
