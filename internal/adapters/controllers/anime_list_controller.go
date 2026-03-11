@@ -37,6 +37,7 @@ func (c *AnimeListController) GetUserList(ctx fuego.ContextNoBody) (UserAnimeLis
 		if err != nil {
 			return UserAnimeListResponse{}, fuego.BadRequestError{Detail: "Invalid status filter"}
 		}
+
 		st := value.AnimeListItemStatus(statusQueryInt)
 		statusFilter = &st
 	}
@@ -58,15 +59,15 @@ type AddAnimeResponse struct {
 }
 
 func (c *AnimeListController) AddAnime(ctx fuego.ContextWithBody[AddAnimeBody]) (AddAnimeResponse, error) {
-	userID, animeID, err := parseUserAndAnimeIDs(ctx)
-	if err != nil {
-		return AddAnimeResponse{}, fuego.BadRequestError{Detail: "Invalid IDs in URL"}
+
+	userID, ok := middlewares.GetUserIDFromContext(ctx.Context())
+	if !ok {
+		return AddAnimeResponse{}, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	// Check if the user is trying to add to their own list
-	allowed := allowedToModifyList(ctx, userID)
-	if !allowed {
-		return AddAnimeResponse{}, fuego.UnauthorizedError{Detail: "Unauthorized"}
+	animeID, err := strconv.ParseUint(ctx.PathParam("animeId"), 10, 32)
+	if err != nil {
+		return AddAnimeResponse{}, fuego.BadRequestError{Detail: "Invalid anime ID"}
 	}
 
 	body, err := ctx.Body()
@@ -76,12 +77,13 @@ func (c *AnimeListController) AddAnime(ctx fuego.ContextWithBody[AddAnimeBody]) 
 
 	status := value.AnimeListItemStatus(body.Status)
 
-	dto, err := c.animeListService.AddAnimeToList(ctx.Context(), userID, animeID, status)
+	dto, err := c.animeListService.AddAnimeToList(ctx.Context(), userID, uint32(animeID), status)
 	if err != nil {
 		var animeAlreadyInListErr *domain_errors.AnimeAlreadyInListError
 		if errors.As(err, &animeAlreadyInListErr) {
 			return AddAnimeResponse{}, fuego.BadRequestError{Detail: err.Error()}
 		}
+
 		return AddAnimeResponse{}, fuego.InternalServerError{Detail: err.Error()}
 	}
 
@@ -93,14 +95,15 @@ type UpdateProgressBody struct {
 }
 
 func (c *AnimeListController) UpdateProgress(ctx fuego.ContextWithBody[UpdateProgressBody]) (any, error) {
-	userID, animeID, err := parseUserAndAnimeIDs(ctx)
-	if err != nil {
-		return nil, fuego.BadRequestError{Detail: "Invalid IDs in URL"}
+
+	userID, ok := middlewares.GetUserIDFromContext(ctx.Context())
+	if !ok {
+		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	allowed := allowedToModifyList(ctx, userID)
-	if !allowed {
-		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
+	animeID, err := strconv.ParseUint(ctx.PathParam("animeId"), 10, 32)
+	if err != nil {
+		return nil, fuego.BadRequestError{Detail: "Invalid anime ID"}
 	}
 
 	body, err := ctx.Body()
@@ -108,7 +111,7 @@ func (c *AnimeListController) UpdateProgress(ctx fuego.ContextWithBody[UpdatePro
 		return nil, fuego.BadRequestError{Detail: "Invalid request body"}
 	}
 
-	err = c.animeListService.UpdateProgress(ctx.Context(), userID, animeID, body.EpisodesWatched)
+	err = c.animeListService.UpdateProgress(ctx.Context(), userID, uint32(animeID), body.EpisodesWatched)
 	if err != nil {
 		return nil, fuego.BadRequestError{Detail: err.Error()}
 	}
@@ -121,14 +124,15 @@ type UpdateStatusBody struct {
 }
 
 func (c *AnimeListController) UpdateStatus(ctx fuego.ContextWithBody[UpdateStatusBody]) (any, error) {
-	userID, animeID, err := parseUserAndAnimeIDs(ctx)
-	if err != nil {
-		return nil, fuego.BadRequestError{Detail: "Invalid IDs in URL"}
+
+	userID, ok := middlewares.GetUserIDFromContext(ctx.Context())
+	if !ok {
+		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	allowed := allowedToModifyList(ctx, userID)
-	if !allowed {
-		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
+	animeID, err := strconv.ParseUint(ctx.PathParam("animeId"), 10, 32)
+	if err != nil {
+		return nil, fuego.BadRequestError{Detail: "Invalid anime ID"}
 	}
 
 	body, err := ctx.Body()
@@ -136,8 +140,7 @@ func (c *AnimeListController) UpdateStatus(ctx fuego.ContextWithBody[UpdateStatu
 		return nil, fuego.BadRequestError{Detail: "Invalid request body"}
 	}
 
-	status := value.AnimeListItemStatus(body.Status)
-	err = c.animeListService.UpdateStatus(ctx.Context(), userID, animeID, status)
+	err = c.animeListService.UpdateStatus(ctx.Context(), userID, uint32(animeID), body.Status)
 	if err != nil {
 		return nil, fuego.BadRequestError{Detail: err.Error()}
 	}
@@ -150,14 +153,15 @@ type UpdateNotesBody struct {
 }
 
 func (c *AnimeListController) UpdateNotes(ctx fuego.ContextWithBody[UpdateNotesBody]) (any, error) {
-	userID, animeID, err := parseUserAndAnimeIDs(ctx)
-	if err != nil {
-		return nil, fuego.BadRequestError{Detail: "Invalid IDs in URL"}
+
+	userID, ok := middlewares.GetUserIDFromContext(ctx.Context())
+	if !ok {
+		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	allowed := allowedToModifyList(ctx, userID)
-	if !allowed {
-		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
+	animeID, err := strconv.ParseUint(ctx.PathParam("animeId"), 10, 32)
+	if err != nil {
+		return nil, fuego.BadRequestError{Detail: "Invalid anime ID"}
 	}
 
 	body, err := ctx.Body()
@@ -165,7 +169,7 @@ func (c *AnimeListController) UpdateNotes(ctx fuego.ContextWithBody[UpdateNotesB
 		return nil, fuego.BadRequestError{Detail: "Invalid request body"}
 	}
 
-	err = c.animeListService.UpdateNotes(ctx.Context(), userID, animeID, body.Notes)
+	err = c.animeListService.UpdateNotes(ctx.Context(), userID, uint32(animeID), body.Notes)
 	if err != nil {
 		return nil, fuego.BadRequestError{Detail: err.Error()}
 	}
@@ -180,14 +184,15 @@ type UpdateRatingBody struct {
 }
 
 func (c *AnimeListController) UpdateRating(ctx fuego.ContextWithBody[UpdateRatingBody]) (any, error) {
-	userID, animeID, err := parseUserAndAnimeIDs(ctx)
-	if err != nil {
-		return nil, fuego.BadRequestError{Detail: "Invalid IDs in URL"}
+
+	userID, ok := middlewares.GetUserIDFromContext(ctx.Context())
+	if !ok {
+		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	allowed := allowedToModifyList(ctx, userID)
-	if !allowed {
-		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
+	animeID, err := strconv.ParseUint(ctx.PathParam("animeId"), 10, 32)
+	if err != nil {
+		return nil, fuego.BadRequestError{Detail: "Invalid anime ID"}
 	}
 
 	body, err := ctx.Body()
@@ -195,7 +200,14 @@ func (c *AnimeListController) UpdateRating(ctx fuego.ContextWithBody[UpdateRatin
 		return nil, fuego.BadRequestError{Detail: "Invalid request body"}
 	}
 
-	err = c.animeListService.UpdateRating(ctx.Context(), userID, animeID, body.Story, body.Visuals, body.Soundtrack)
+	err = c.animeListService.UpdateRating(
+		ctx.Context(),
+		userID,
+		uint32(animeID),
+		body.Story,
+		body.Visuals,
+		body.Soundtrack,
+	)
 	if err != nil {
 		return nil, fuego.BadRequestError{Detail: err.Error()}
 	}
@@ -204,43 +216,21 @@ func (c *AnimeListController) UpdateRating(ctx fuego.ContextWithBody[UpdateRatin
 }
 
 func (c *AnimeListController) RemoveAnimeFromList(ctx fuego.ContextNoBody) (any, error) {
-	userID, animeID, err := parseUserAndAnimeIDs(ctx)
-	if err != nil {
-		return nil, fuego.BadRequestError{Detail: "Invalid IDs in URL"}
-	}
 
-	allowed := allowedToModifyList(ctx, userID)
-	if !allowed {
+	userID, ok := middlewares.GetUserIDFromContext(ctx.Context())
+	if !ok {
 		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	err = c.animeListService.RemoveAnimeFromList(ctx.Context(), userID, animeID)
+	animeID, err := strconv.ParseUint(ctx.PathParam("animeId"), 10, 32)
+	if err != nil {
+		return nil, fuego.BadRequestError{Detail: "Invalid anime ID"}
+	}
+
+	err = c.animeListService.RemoveAnimeFromList(ctx.Context(), userID, uint32(animeID))
 	if err != nil {
 		return nil, fuego.BadRequestError{Detail: err.Error()}
 	}
 
 	return nil, nil
-}
-
-func parseUserAndAnimeIDs[B, P any](ctx fuego.Context[B, P]) (int, uint32, error) {
-	userID, err := strconv.Atoi(ctx.PathParam("userId"))
-	if err != nil {
-		return 0, 0, err
-	}
-
-	animeIDStr := ctx.PathParam("animeId")
-	animeID, err := strconv.ParseUint(animeIDStr, 10, 32)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	return userID, uint32(animeID), nil
-}
-
-func allowedToModifyList[B, P any](ctx fuego.Context[B, P], targetUserID int) bool {
-	loggedUserID, ok := middlewares.GetUserIDFromContext(ctx.Context())
-	if !ok || loggedUserID != targetUserID {
-		return false
-	}
-	return true
 }

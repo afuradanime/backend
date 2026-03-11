@@ -218,8 +218,6 @@ func BootstrapAnimeList(ctx context.Context, animeListRepo *repositories.AnimeLi
 	testEntry.AddRating(8, 9, 7)
 	testList.AddListItem(*testEntry)
 
-	SuperFunnyListFiller3000(testList, userID, 24000)
-
 	if err := animeListRepo.SaveUserList(ctx, testList); err != nil {
 		panic(err)
 	}

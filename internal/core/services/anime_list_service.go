@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"errors"
-	"log"
 	"strconv"
 
 	"github.com/afuradanime/backend/internal/adapters/dtos"
@@ -199,7 +198,7 @@ func (s *AnimeListService) FetchUserList(ctx context.Context, userID int, status
 	for _, item := range items {
 		anime, err := s.animeRepo.FetchAnimeByID(uint32(item.AnimeID))
 		if err != nil || anime == nil {
-			log.Printf("Anime %d was not found for user %d (?)", item.AnimeID, userID)
+			// log.Printf("Anime %d was not found for user %d (?)", item.AnimeID, userID)
 			continue
 		}
 		item := item // capture loop var for pointer safety
