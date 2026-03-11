@@ -178,6 +178,10 @@ func (s *AnimeListService) FetchUserList(ctx context.Context, userID int, status
 		return nil, err
 	}
 
+	if list == nil {
+		return &dtos.UserAnimeListDTO{UserListItems: []*dtos.UserListItemDTO{}}, nil
+	}
+
 	items := list.UserListItems
 
 	// Filter by status in the service layer
