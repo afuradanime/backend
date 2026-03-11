@@ -206,14 +206,13 @@ func (c *AnimeListController) UpdateRating(w http.ResponseWriter, r *http.Reques
 		Story      uint8 `json:"story"`
 		Visuals    uint8 `json:"visuals"`
 		Soundtrack uint8 `json:"soundtrack"`
-		Enjoyment  uint8 `json:"enjoyment"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	err = c.animeListService.UpdateRating(r.Context(), userID, animeID, body.Story, body.Visuals, body.Soundtrack, body.Enjoyment)
+	err = c.animeListService.UpdateRating(r.Context(), userID, animeID, body.Story, body.Visuals, body.Soundtrack)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
