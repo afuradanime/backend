@@ -32,4 +32,7 @@ go.work.sum
 # .vscode/
 
 # Swagger / OpenAPI generated code
-/openapi/**
+/_openapi/
+
+# Build output
+/bin/

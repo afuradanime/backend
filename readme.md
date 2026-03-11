@@ -29,6 +29,38 @@ Um *Backend* desenvolvido em [Go](https://go.dev/), responsável por disponibili
 </div>
 </div>
 
+## Exemplo de ficheiro de ambiente:
+
+`.env`:
+```sh
+# Application specific variables
+PORT=8080
+FRONTEND_URL=http://localhost:5173
+SHOULD_BOOTSTRAP=true
+ENCRYPTION_KEY=[EPSTEINED]
+
+# SQLite database path
+ANIME_DATABASE_PATH=../anime.db
+
+# MongoDB connection details
+MONGO_CONNECTION_STRING=mongodb://[EPSTEINED]
+MONGO_USERNAME=[EPSTEINED]
+MONGO_PASSWORD=[EPSTEINED]
+MONGO_DATABASE=[EPSTEINED]
+
+# Google OAuth 2.0 credentials
+GOOGLE_CLIENT_ID=[EPSTEINED]
+GOOGLE_CLIENT_SECRET=[EPSTEINED]
+GOOGLE_REDIRECT_URI=http://localhost:8080/auth/google/callback
+
+# JWT configuration
+JWT_SECRET=[EPSTEINED]
+JWT_EXPIRATION_HOURS=24
+JWT_ISSUER=[EPSTEINED]
+```
+
+onde `[EPSTEINED]` é a substituição por credenciais privadas.
+
 ## Dependências do backend
 Para que o backend do AfuradaAnime funcione como deve, é necessário ter as suas dependências preparadas:
 

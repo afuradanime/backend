@@ -61,7 +61,7 @@ func (app *Application) Run() {
 			fuego.WithOpenAPIConfig(fuego.OpenAPIConfig{
 				SwaggerURL:   "/swagger",
 				SpecURL:      "/swagger/openapi.json",
-				JSONFilePath: "openapi/openapi.json",
+				JSONFilePath: "_openapi/openapi.json",
 				Info: &openapi3.Info{
 					Title:       "Afuradanime API",
 					Description: "The openapi docs for the Afuradanime API/Backend",
