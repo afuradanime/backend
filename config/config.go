@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/afuradanime/backend/internal/core/utils"
 	"github.com/joho/godotenv"
 )
 
@@ -20,9 +21,16 @@ type Config struct {
 }
 
 func Load() *Config {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	env := utils.GetApplicationEnvironment()
+
+	// Load the appropriate .env file based on the environment
+	envFile := ".env"
+	if env == "test" {
+		envFile = ".env.test"
+	}
+
+	if err := godotenv.Load(envFile); err != nil {
+		log.Println("Warning: no .env file found at", envFile)
 	}
 
 	return &Config{

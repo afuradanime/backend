@@ -4,14 +4,23 @@ import (
 	"log"
 	"os"
 
+	"github.com/afuradanime/backend/internal/core/utils"
 	"github.com/joho/godotenv"
 	"golang.org/x/oauth2"
 )
 
 func LoadOauth2() *oauth2.Config {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+
+	env := utils.GetApplicationEnvironment()
+
+	// Load the appropriate .env file based on the environment
+	envFile := ".env"
+	if env == "test" {
+		envFile = ".env.test"
+	}
+
+	if err := godotenv.Load(envFile); err != nil {
+		log.Println("Warning: no .env file found at", envFile)
 	}
 
 	return &oauth2.Config{

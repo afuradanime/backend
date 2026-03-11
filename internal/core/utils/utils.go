@@ -1,6 +1,9 @@
 package utils
 
-import "time"
+import (
+	"os"
+	"time"
+)
 
 func Clamp(a, bottom, top int) int {
 
@@ -44,4 +47,14 @@ func ParseISODate(s *string) *time.Time {
 
 	t := time.Now()
 	return &t
+}
+
+func GetApplicationEnvironment() string {
+	env := "development"
+
+	if e := os.Getenv("ENV"); e != "" {
+		env = e
+	}
+
+	return env
 }
