@@ -1,8 +1,9 @@
 package utils
 
 import (
-	"net/http"
 	"strconv"
+
+	"github.com/go-fuego/fuego"
 )
 
 const MAX_PAGE_SIZE = 50
@@ -13,17 +14,17 @@ type Pagination struct {
 	TotalPages int
 }
 
-func GetPaginationParams(r *http.Request, defaultSize int) (pageNumber, pageSize int) {
-	pageNumber = 0
+func GetPaginationParams(ctx fuego.ContextNoBody, defaultSize int) (pageNumber, pageSize int) {
+	pageNumber = 1
 	pageSize = defaultSize
 
-	if pageStr := r.URL.Query().Get("pageNumber"); pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p >= 0 {
+	if pageStr := ctx.QueryParam("pageNumber"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p >= 1 {
 			pageNumber = p
 		}
 	}
 
-	if sizeStr := r.URL.Query().Get("pageSize"); sizeStr != "" {
+	if sizeStr := ctx.QueryParam("pageSize"); sizeStr != "" {
 		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 {
 			pageSize = s
 		}

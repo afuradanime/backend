@@ -1,14 +1,13 @@
 package controllers
 
 import (
-	"encoding/json"
-	"net/http"
 	"strconv"
 
 	"github.com/afuradanime/backend/internal/adapters/middlewares"
+	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/interfaces"
 	"github.com/afuradanime/backend/internal/core/utils"
-	"github.com/go-chi/chi/v5"
+	"github.com/go-fuego/fuego"
 )
 
 type RecommendationController struct {
@@ -19,73 +18,68 @@ func NewRecommendationController(service interfaces.RecommendationService) *Reco
 	return &RecommendationController{service: service}
 }
 
-func (c *RecommendationController) Send(w http.ResponseWriter, r *http.Request) {
-	initiatorID, ok := middlewares.GetUserIDFromContext(r)
+func (c *RecommendationController) Send(ctx fuego.ContextNoBody) (any, error) {
+	initiatorID, ok := middlewares.GetUserIDFromContext(ctx.Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	receiverID, err := strconv.Atoi(chi.URLParam(r, "receiverID"))
+	receiverID, err := strconv.Atoi(ctx.PathParam("receiverID"))
 	if err != nil {
-		http.Error(w, "Invalid receiver ID", http.StatusBadRequest)
-		return
+		return nil, fuego.BadRequestError{Detail: "Invalid receiver ID"}
 	}
 
-	animeID, err := strconv.Atoi(chi.URLParam(r, "animeID"))
+	animeID, err := strconv.Atoi(ctx.PathParam("animeID"))
 	if err != nil {
-		http.Error(w, "Invalid anime ID", http.StatusBadRequest)
-		return
+		return nil, fuego.BadRequestError{Detail: "Invalid anime ID"}
 	}
 
-	err = c.service.Send(r.Context(), initiatorID, receiverID, animeID)
+	err = c.service.Send(ctx.Context(), initiatorID, receiverID, animeID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return nil, fuego.BadRequestError{Detail: err.Error()}
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	return nil, nil
 }
 
-func (c *RecommendationController) GetMine(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middlewares.GetUserIDFromContext(r)
-	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	pageNumber, pageSize := utils.GetPaginationParams(r, 20)
-
-	recs, pagination, err := c.service.GetUserRecommendations(r.Context(), userID, pageNumber, pageSize)
-	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data":       recs,
-		"pagination": pagination,
-	})
+type UserRecommendationsResponse struct {
+	Data       []*domain.Recommendation `json:"data"`
+	Pagination utils.Pagination         `json:"pagination"`
 }
 
-func (c *RecommendationController) Dismiss(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middlewares.GetUserIDFromContext(r)
+func (c *RecommendationController) GetMine(ctx fuego.ContextNoBody) (UserRecommendationsResponse, error) {
+	userID, ok := middlewares.GetUserIDFromContext(ctx.Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return UserRecommendationsResponse{}, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	animeID, err := strconv.Atoi(chi.URLParam(r, "animeID"))
+	pageNumber, pageSize := utils.GetPaginationParams(ctx, 20)
+
+	recs, pagination, err := c.service.GetUserRecommendations(ctx.Context(), userID, pageNumber, pageSize)
 	if err != nil {
-		http.Error(w, "Invalid anime ID", http.StatusBadRequest)
-		return
+		return UserRecommendationsResponse{}, fuego.InternalServerError{Detail: "Internal server error"}
 	}
 
-	if err := c.service.DismissRecommendation(r.Context(), userID, animeID); err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
+	return UserRecommendationsResponse{
+		Data:       recs,
+		Pagination: pagination,
+	}, nil
+}
+
+func (c *RecommendationController) Dismiss(ctx fuego.ContextNoBody) (any, error) {
+	userID, ok := middlewares.GetUserIDFromContext(ctx.Context())
+	if !ok {
+		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	animeID, err := strconv.Atoi(ctx.PathParam("animeID"))
+	if err != nil {
+		return nil, fuego.BadRequestError{Detail: "Invalid anime ID"}
+	}
+
+	if err := c.service.DismissRecommendation(ctx.Context(), userID, animeID); err != nil {
+		return nil, fuego.InternalServerError{Detail: "Internal server error"}
+	}
+
+	return nil, nil
 }

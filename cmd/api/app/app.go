@@ -2,15 +2,14 @@ package app
 
 import (
 	"log"
-	"net/http"
 
 	"github.com/afuradanime/backend/cmd/api/app/database"
 	"github.com/afuradanime/backend/config"
 	"github.com/afuradanime/backend/internal/core/utils"
+	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/go-fuego/fuego"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/oauth2"
-
-	"github.com/go-chi/chi/v5"
 )
 
 type Application struct {
@@ -55,12 +54,26 @@ func New() *Application {
 }
 
 func (app *Application) Run() {
-	// Setup HTTP server
-	r := chi.NewRouter()
-	app.InitRoutes(r)
+
+	s := fuego.NewServer(
+		fuego.WithAddr("localhost:"+app.Config.Port),
+		fuego.WithEngineOptions(
+			fuego.WithOpenAPIConfig(fuego.OpenAPIConfig{
+				SwaggerURL:   "/swagger",
+				SpecURL:      "/swagger/openapi.json",
+				JSONFilePath: "openapi/openapi.json",
+				Info: &openapi3.Info{
+					Title:       "Afuradanime API",
+					Description: "The openapi docs for the Afuradanime API/Backend",
+					Version:     "0.2.0",
+				},
+			}),
+		),
+	)
+	app.InitRoutes(s)
 
 	log.Println("Server started on port " + app.Config.Port)
-	err := http.ListenAndServe(":"+app.Config.Port, r)
+	err := s.Run()
 	if err != nil {
 		log.Fatal("Actually, the server failed to start: ", err)
 	}

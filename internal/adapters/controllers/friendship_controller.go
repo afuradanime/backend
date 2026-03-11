@@ -1,8 +1,6 @@
 package controllers
 
 import (
-	"encoding/json"
-	"net/http"
 	"strconv"
 
 	"github.com/afuradanime/backend/internal/adapters/middlewares"
@@ -10,7 +8,7 @@ import (
 	"github.com/afuradanime/backend/internal/core/domain/value"
 	"github.com/afuradanime/backend/internal/core/interfaces"
 	"github.com/afuradanime/backend/internal/core/utils"
-	"github.com/go-chi/chi/v5"
+	"github.com/go-fuego/fuego"
 )
 
 type FriendshipController struct {
@@ -23,174 +21,151 @@ func NewFriendshipController(friendshipService interfaces.FriendshipService) *Fr
 	}
 }
 
-func (c *FriendshipController) SendFriendRequest(w http.ResponseWriter, r *http.Request) {
+func (c *FriendshipController) SendFriendRequest(ctx fuego.ContextNoBody) (any, error) {
 
-	initiator, ok := middlewares.GetUserIDFromContext(r)
+	initiator, ok := middlewares.GetUserIDFromContext(ctx.Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	receiverStr := chi.URLParam(r, "receiver")
-	receiver, err := strconv.Atoi(receiverStr)
+	receiver, err := strconv.Atoi(ctx.PathParam("receiver"))
 	if err != nil {
-		http.Error(w, "Invalid receiver ID", http.StatusBadRequest)
-		return
+		return nil, fuego.BadRequestError{Detail: "Invalid receiver ID"}
 	}
 
-	if err := c.friendshipService.SendFriendRequest(r.Context(), initiator, receiver); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if err := c.friendshipService.SendFriendRequest(ctx.Context(), initiator, receiver); err != nil {
+		return nil, fuego.InternalServerError{Detail: err.Error()}
 	}
 
-	w.WriteHeader(http.StatusOK)
+	return nil, nil
 }
 
-func (c *FriendshipController) AcceptFriendRequest(w http.ResponseWriter, r *http.Request) {
-	receiver, ok := middlewares.GetUserIDFromContext(r)
+func (c *FriendshipController) AcceptFriendRequest(ctx fuego.ContextNoBody) (any, error) {
+	receiver, ok := middlewares.GetUserIDFromContext(ctx.Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	initiatorStr := chi.URLParam(r, "initiator")
-	initiator, err := strconv.Atoi(initiatorStr)
+	initiator, err := strconv.Atoi(ctx.PathParam("initiator"))
 	if err != nil {
-		http.Error(w, "Invalid initiator ID", http.StatusBadRequest)
-		return
+		return nil, fuego.BadRequestError{Detail: "Invalid initiator ID"}
 	}
 
-	if err := c.friendshipService.AcceptFriendRequest(r.Context(), initiator, receiver); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if err := c.friendshipService.AcceptFriendRequest(ctx.Context(), initiator, receiver); err != nil {
+		return nil, fuego.InternalServerError{Detail: err.Error()}
 	}
 
-	w.WriteHeader(http.StatusOK)
+	return nil, nil
 }
 
-func (c *FriendshipController) DeclineFriendRequest(w http.ResponseWriter, r *http.Request) {
-	receiver, ok := middlewares.GetUserIDFromContext(r)
+func (c *FriendshipController) DeclineFriendRequest(ctx fuego.ContextNoBody) (any, error) {
+	receiver, ok := middlewares.GetUserIDFromContext(ctx.Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	initiatorStr := chi.URLParam(r, "initiator")
-	initiator, err := strconv.Atoi(initiatorStr)
+	initiator, err := strconv.Atoi(ctx.PathParam("initiator"))
 	if err != nil {
-		http.Error(w, "Invalid initiator ID", http.StatusBadRequest)
-		return
+		return nil, fuego.BadRequestError{Detail: "Invalid initiator ID"}
 	}
 
-	if err := c.friendshipService.DeclineFriendRequest(r.Context(), initiator, receiver); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if err := c.friendshipService.DeclineFriendRequest(ctx.Context(), initiator, receiver); err != nil {
+		return nil, fuego.InternalServerError{Detail: err.Error()}
 	}
 
-	w.WriteHeader(http.StatusOK)
+	return nil, nil
 }
 
-func (c *FriendshipController) BlockUser(w http.ResponseWriter, r *http.Request) {
-	initiator, ok := middlewares.GetUserIDFromContext(r)
+func (c *FriendshipController) BlockUser(ctx fuego.ContextNoBody) (any, error) {
+	initiator, ok := middlewares.GetUserIDFromContext(ctx.Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	receiverStr := chi.URLParam(r, "receiver")
-	receiver, err := strconv.Atoi(receiverStr)
+	receiver, err := strconv.Atoi(ctx.PathParam("receiver"))
 	if err != nil {
-		http.Error(w, "Invalid receiver ID", http.StatusBadRequest)
-		return
+		return nil, fuego.BadRequestError{Detail: "Invalid receiver ID"}
 	}
 
-	if err := c.friendshipService.BlockUser(r.Context(), initiator, receiver); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if err := c.friendshipService.BlockUser(ctx.Context(), initiator, receiver); err != nil {
+		return nil, fuego.InternalServerError{Detail: err.Error()}
 	}
 
-	w.WriteHeader(http.StatusOK)
+	return nil, nil
 }
 
-func (c *FriendshipController) ListFriends(w http.ResponseWriter, r *http.Request) {
-	targetUserStr := chi.URLParam(r, "userID")
-	if targetUserStr == "" {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
-		return
-	}
-
-	targetUser, err := strconv.Atoi(targetUserStr)
-	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
-		return
-	}
-
-	pageNumber, pageSize := utils.GetPaginationParams(r, 50)
-
-	friends, pagination, err := c.friendshipService.GetFriendList(r.Context(), targetUser, pageNumber, pageSize)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data":       friends,
-		"pagination": pagination,
-	})
+type ListFriendsResponse struct {
+	Friends    []domain.User    `json:"data"`
+	Pagination utils.Pagination `json:"pagination"`
 }
 
-func (c *FriendshipController) ListPendingFriendRequests(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middlewares.GetUserIDFromContext(r)
-	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	pageNumber, pageSize := utils.GetPaginationParams(r, 50)
-
-	requests, pagination, err := c.friendshipService.GetPendingFriendRequests(r.Context(), userID, pageNumber, pageSize)
+func (c *FriendshipController) ListFriends(ctx fuego.ContextNoBody) (ListFriendsResponse, error) {
+	targetUser, err := strconv.Atoi(ctx.PathParam("userID"))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return ListFriendsResponse{}, fuego.BadRequestError{Detail: "Invalid user ID"}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data":       requests,
-		"pagination": pagination,
-	})
+	pageNumber, pageSize := utils.GetPaginationParams(ctx, 50)
+
+	friends, pagination, err := c.friendshipService.GetFriendList(ctx.Context(), targetUser, pageNumber, pageSize)
+	if err != nil {
+		return ListFriendsResponse{}, fuego.InternalServerError{Detail: err.Error()}
+	}
+
+	return ListFriendsResponse{
+		Friends: friends, Pagination: pagination,
+	}, nil
 }
 
-func (c *FriendshipController) FetchFriendshipStatus(w http.ResponseWriter, r *http.Request) {
-	userA, ok := middlewares.GetUserIDFromContext(r)
+func (c *FriendshipController) ListPendingFriendRequests(ctx fuego.ContextNoBody) (ListFriendsResponse, error) {
+	userID, ok := middlewares.GetUserIDFromContext(ctx.Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return ListFriendsResponse{}, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	receiverStr := chi.URLParam(r, "receiver")
-	userB, err := strconv.Atoi(receiverStr)
+	pageNumber, pageSize := utils.GetPaginationParams(ctx, 50)
+
+	requests, pagination, err := c.friendshipService.GetPendingFriendRequests(ctx.Context(), userID, pageNumber, pageSize)
 	if err != nil {
-		http.Error(w, "Invalid receiver ID", http.StatusBadRequest)
-		return
+		return ListFriendsResponse{}, fuego.InternalServerError{Detail: err.Error()}
 	}
 
-	friendshipStatus, err := c.friendshipService.FetchFriendshipStatus(r.Context(), userA, userB)
+	return ListFriendsResponse{
+		Friends: requests, Pagination: pagination,
+	}, nil
+}
+
+type FriendshipStatusResponse struct {
+	Initiator int                    `json:"initiator"`
+	Receiver  int                    `json:"receiver"`
+	Status    value.FriendshipStatus `json:"status"`
+}
+
+func (c *FriendshipController) FetchFriendshipStatus(ctx fuego.ContextNoBody) (FriendshipStatusResponse, error) {
+	userA, ok := middlewares.GetUserIDFromContext(ctx.Context())
+	if !ok {
+		return FriendshipStatusResponse{}, fuego.UnauthorizedError{Detail: "Unauthorized"}
+	}
+
+	userB, err := strconv.Atoi(ctx.PathParam("receiver"))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return FriendshipStatusResponse{}, fuego.BadRequestError{Detail: "Invalid receiver ID"}
 	}
 
-	if friendshipStatus == nil {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(domain.Friendship{
-			Initiator: userA,
-			Receiver:  userB,
-			Status:    value.FriendshipStatusNone,
-		})
+	friendshipStatus, err := c.friendshipService.FetchFriendshipStatus(ctx.Context(), userA, userB)
+	if err != nil {
+		return FriendshipStatusResponse{}, fuego.InternalServerError{Detail: err.Error()}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(*friendshipStatus)
+	status := value.FriendshipStatusNone
+	if friendshipStatus != nil {
+		status = friendshipStatus.Status
+	}
+
+	return FriendshipStatusResponse{
+		Initiator: userA,
+		Receiver:  userB,
+		Status:    status,
+	}, nil
+
 }

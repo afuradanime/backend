@@ -6,236 +6,191 @@ import (
 	"github.com/afuradanime/backend/internal/adapters/repositories"
 	"github.com/afuradanime/backend/internal/core/domain/value"
 	"github.com/afuradanime/backend/internal/core/services"
-	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-fuego/fuego"
 )
 
-func (a *Application) InitRoutes(r *chi.Mux) {
-
-	// Global rate limiter for all regular application endpoints
-	// 10 Second limiting every 30 bursts
+func (a *Application) InitRoutes(s *fuego.Server) {
+	// Global rate limiter
 	globalLimiter := &middlewares.IPRateLimiter{Rps: 10, Burst: 30}
 
-	r.Use(
+	// Fuego uses package level Use function
+	fuego.Use(s,
 		middleware.Logger,
-		middleware.Recoverer, // useful middleware to recover from panics and return a 500 error
+		middleware.Recoverer,
 		middlewares.CORSMiddleware,
 		globalLimiter.Middleware,
 	)
 
-	r.Group(func(r chi.Router) {
-		r.Mount("/auth", a.BootstrapAuthModule())
-		r.Mount("/anime", a.BootstrapAnimeModule())
+	// Register Modules
+	a.RegisterAuthModule(s)
+	a.RegisterAnimeModule(s)
+	a.RegisterUserModule(s)
+	a.RegisterFriendsModule(s)
+	a.RegisterTranslationsModule(s)
+	a.RegisterAnimeListModule(s)
 
-		// Partially public
-		r.Mount("/users", a.BootstrapUserModule())
-		r.Mount("/friends", a.BootstrapFriendsModule())
-		r.Mount("/translations", a.BootstrapTranslationsModule())
-		r.Mount("/animelist", a.BootstrapAnimeListModule())
-	})
+	// Group for globally protected routes
+	protected := fuego.Group(s, "/")
+	fuego.Use(protected, middlewares.JWTMiddleware(a.JWTConfig))
 
-	r.Group(func(r chi.Router) {
-		r.Use(middlewares.JWTMiddleware(a.JWTConfig))
-		r.Mount("/reports", a.BootstrapReportsModule())
-		r.Mount("/posts", a.BootstrapPostModule())
-		r.Mount("/recommendations", a.BootstrapRecommendationsModule())
-	})
+	a.RegisterReportsModule(protected)
+	a.RegisterPostModule(protected)
+	a.RegisterRecommendationsModule(protected)
 }
 
-func (a *Application) BootstrapTranslationsModule() chi.Router {
+func (a *Application) RegisterTranslationsModule(s *fuego.Server) {
 	translationRepo := repositories.NewDescriptionTranslationRepository(a.Mongo)
 	userRepo := repositories.NewUserRepository(a.Mongo)
 	animeRepo := repositories.NewAnimeRepository()
 	translationService := services.NewDescriptionTranslationService(translationRepo, animeRepo, userRepo)
 	translationController := controllers.NewDescriptionTranslationController(translationService)
 
-	r := chi.NewRouter()
+	g := fuego.Group(s, "/translations")
 
 	// Public
-	r.Post("/anime/{animeID}", translationController.SubmitTranslation)
-	r.Get("/anime/{animeID}", translationController.GetAnimeTranslation)
-	r.Get("/user/{userID}", translationController.GetUserTranslations)
+	fuego.Post(g, "/anime/{animeID}", translationController.SubmitTranslation)
+	fuego.Get(g, "/anime/{animeID}", translationController.GetAnimeTranslation)
+	fuego.Get(g, "/user/{userID}", translationController.GetUserTranslations)
 
-	// Requires moderator
-	r.Group(func(r chi.Router) {
-		r.Use(middlewares.RequireRoleMiddleware(value.UserRoleModerator))
-		r.Put("/{id}/accept", translationController.AcceptTranslation)
-		r.Put("/{id}/reject", translationController.RejectTranslation)
-		r.Get("/pending", translationController.GetPendingTranslations)
-	})
-
-	return r
+	// Moderator only
+	modGroup := fuego.Group(g, "/")
+	fuego.Use(modGroup, middlewares.RequireRoleMiddleware(value.UserRoleModerator))
+	fuego.Put(modGroup, "/{id}/accept", translationController.AcceptTranslation)
+	fuego.Put(modGroup, "/{id}/reject", translationController.RejectTranslation)
+	fuego.Get(modGroup, "/pending", translationController.GetPendingTranslations)
 }
 
-func (a *Application) BootstrapUserModule() chi.Router {
+func (a *Application) RegisterUserModule(s *fuego.Server) {
 	userRepo := repositories.NewUserRepository(a.Mongo)
 	userService := services.NewUserService(userRepo)
 	userController := controllers.NewUserController(userService)
 
-	r := chi.NewRouter()
+	g := fuego.Group(s, "/users")
 
-	// Public
-	r.Get("/", userController.GetUsers)
-	r.Get("/search", userController.SearchByUsername)
-	r.Get("/{id}", userController.GetUserByID)
+	fuego.Get(g, "/", userController.GetUsers)
+	fuego.Get(g, "/search", userController.SearchByUsername)
+	fuego.Get(g, "/{id}", userController.GetUserByID)
 
-	// Requires authenticated
-	r.Group(func(r chi.Router) {
-		r.Use(middlewares.JWTMiddleware(a.JWTConfig))
-		r.Put("/", userController.UpdateUserInfo)
-	})
+	// Authenticated
+	authGroup := fuego.Group(g, "/")
+	fuego.Use(authGroup, middlewares.JWTMiddleware(a.JWTConfig))
+	fuego.Put(authGroup, "/", userController.UpdateUserInfo)
 
-	// Requires moderator
-	r.Group(func(r chi.Router) {
-		r.Use(middlewares.JWTMiddleware(a.JWTConfig))
-		r.Use(middlewares.RequireRoleMiddleware(value.UserRoleModerator))
-		r.Put("/{id}/restrict", userController.RestrictAccount)
-	})
-
-	return r
+	// Moderator
+	modGroup := fuego.Group(authGroup, "/")
+	fuego.Use(modGroup, middlewares.RequireRoleMiddleware(value.UserRoleModerator))
+	fuego.Put(modGroup, "/{id}/restrict", userController.RestrictAccount)
 }
 
-func (a *Application) BootstrapAnimeModule() chi.Router {
+func (a *Application) RegisterAnimeModule(s *fuego.Server) {
 	animeRepo := repositories.NewAnimeRepository()
 	animeService := services.NewAnimeService(animeRepo)
 	animeController := controllers.NewAnimeController(animeService)
 
-	r := chi.NewRouter()
-	r.Get("/{id}", animeController.GetAnimeByID)
-	r.Get("/random", animeController.GetRandomAnime)
-	r.Get("/search", animeController.SearchAnime)
-	r.Get("/seasonal", animeController.GetAnimeThisSeason)
-	r.Get("/studio/{id}", animeController.GetAnimeByStudioID)
-	r.Get("/producer/{id}", animeController.GetAnimeByProducerID)
-	r.Get("/licensor/{id}", animeController.GetAnimeByLicensorID)
-	r.Get("/tags/{id}", animeController.GetAnimeByTagID)
-
-	return r
+	g := fuego.Group(s, "/anime")
+	fuego.Get(g, "/{id}", animeController.GetAnimeByID)
+	fuego.Get(g, "/random", animeController.GetRandomAnime)
+	fuego.Get(g, "/search", animeController.SearchAnime)
+	fuego.Get(g, "/seasonal", animeController.GetAnimeThisSeason)
+	fuego.Get(g, "/studio/{id}", animeController.GetAnimeByStudioID)
+	fuego.Get(g, "/producer/{id}", animeController.GetAnimeByProducerID)
+	fuego.Get(g, "/licensor/{id}", animeController.GetAnimeByLicensorID)
+	fuego.Get(g, "/tags/{id}", animeController.GetAnimeByTagID)
 }
 
-func (a *Application) BootstrapFriendsModule() chi.Router {
+func (a *Application) RegisterFriendsModule(s *fuego.Server) {
 	friendshipRepo := repositories.NewFriendshipRepository(a.Mongo)
 	userRepo := repositories.NewUserRepository(a.Mongo)
 	friendshipService := services.NewFriendshipService(userRepo, friendshipRepo)
 	friendshipController := controllers.NewFriendshipController(friendshipService)
 
-	r := chi.NewRouter()
+	g := fuego.Group(s, "/friends")
+	fuego.Get(g, "/{userID}", friendshipController.ListFriends)
 
-	// Public
-	r.Get("/{userID}", friendshipController.ListFriends)
-
-	// Requires auth
-	r.Group(func(r chi.Router) {
-		r.Use(middlewares.JWTMiddleware(a.JWTConfig))
-		r.Put("/send/{receiver}", friendshipController.SendFriendRequest)
-		r.Put("/accept/{initiator}", friendshipController.AcceptFriendRequest)
-		r.Put("/decline/{initiator}", friendshipController.DeclineFriendRequest)
-		r.Put("/block/{receiver}", friendshipController.BlockUser)
-		r.Get("/pending", friendshipController.ListPendingFriendRequests)
-		r.Get("/check/{receiver}", friendshipController.FetchFriendshipStatus)
-	})
-
-	return r
+	authGroup := fuego.Group(g, "/")
+	fuego.Use(authGroup, middlewares.JWTMiddleware(a.JWTConfig))
+	fuego.Put(authGroup, "/send/{receiver}", friendshipController.SendFriendRequest)
+	fuego.Put(authGroup, "/accept/{initiator}", friendshipController.AcceptFriendRequest)
+	fuego.Put(authGroup, "/decline/{initiator}", friendshipController.DeclineFriendRequest)
+	fuego.Put(authGroup, "/block/{receiver}", friendshipController.BlockUser)
+	fuego.Get(authGroup, "/pending", friendshipController.ListPendingFriendRequests)
+	fuego.Get(authGroup, "/check/{receiver}", friendshipController.FetchFriendshipStatus)
 }
 
-func (a *Application) BootstrapAuthModule() chi.Router {
-
+func (a *Application) RegisterAuthModule(s *fuego.Server) {
 	jwtService := services.NewJWTService(a.JWTConfig)
 	userService := services.NewUserService(repositories.NewUserRepository(a.Mongo))
-	googleAuthController := controllers.NewGoogleAuthController(a.OAuth2Config, jwtService, userService)
+	googleAuthController := controllers.NewGoogleAuthController(a.Config, a.OAuth2Config, jwtService, userService)
 
-	r := chi.NewRouter()
-
-	// Rate limiter specific to authentication endpoints
-	// This one must be stricter, as to avoid botted account creations
+	g := fuego.Group(s, "/auth")
 	authLimiter := &middlewares.IPRateLimiter{Rps: 0.5, Burst: 3}
-	r.Use(authLimiter.Middleware)
+	fuego.Use(g, authLimiter.Middleware)
 
-	r.Get("/google/login", googleAuthController.Login)
-	r.Get("/google/callback", googleAuthController.Callback)
-	r.Get("/me", googleAuthController.WhoAmI)
-	r.Get("/logout", googleAuthController.Logout)
-
-	return r
+	fuego.Get(g, "/google/login", googleAuthController.Login)
+	fuego.Get(g, "/google/callback", googleAuthController.Callback)
+	fuego.Get(g, "/me", googleAuthController.WhoAmI)
+	fuego.Get(g, "/logout", googleAuthController.Logout)
 }
 
-func (a *Application) BootstrapReportsModule() chi.Router {
+func (a *Application) RegisterReportsModule(s *fuego.Server) {
 	reportRepo := repositories.NewUserReportRepository(a.Mongo)
 	userRepo := repositories.NewUserRepository(a.Mongo)
 	reportService := services.NewUserReportService(reportRepo, userRepo)
 	reportController := controllers.NewUserReportController(reportService)
 
-	r := chi.NewRouter()
+	g := fuego.Group(s, "/reports")
+	fuego.Post(g, "/{userID}", reportController.SubmitReport)
 
-	r.Post("/{userID}", reportController.SubmitReport)
-
-	// Requires moderator
-	r.Group(func(r chi.Router) {
-		r.Use(middlewares.RequireRoleMiddleware(value.UserRoleModerator))
-		r.Get("/", reportController.GetReports)
-		r.Get("/user/{userID}", reportController.GetReportsByTarget)
-		r.Delete("/{id}", reportController.DeleteReport)
-	})
-
-	return r
+	modGroup := fuego.Group(g, "/")
+	fuego.Use(modGroup, middlewares.RequireRoleMiddleware(value.UserRoleModerator))
+	fuego.Get(modGroup, "/", reportController.GetReports)
+	fuego.Get(modGroup, "/user/{userID}", reportController.GetReportsByTarget)
+	fuego.Delete(modGroup, "/{id}", reportController.DeleteReport)
 }
 
-func (a *Application) BootstrapPostModule() chi.Router {
+func (a *Application) RegisterPostModule(s *fuego.Server) {
 	postRepo := repositories.NewPostRepository(a.Mongo)
 	userRepo := repositories.NewUserRepository(a.Mongo)
 	friendshipSvc := services.NewFriendshipService(userRepo, repositories.NewFriendshipRepository(a.Mongo))
 	postService := services.NewPostService(postRepo, userRepo, friendshipSvc)
 	postController := controllers.NewPostController(postService)
 
-	r := chi.NewRouter()
-	r.Get("/{post_id}", postController.GetPostById)
-	r.Get("/{parent_id}/replies", postController.GetPostReplies)
-	r.Post("/", postController.CreatePost)
-	r.Post("/{post_id}/reply", postController.CreateReply)
-	r.Delete("/{post_id}", postController.DeletePost)
-
-	return r
+	g := fuego.Group(s, "/posts")
+	fuego.Get(g, "/{post_id}", postController.GetPostById)
+	fuego.Get(g, "/{parent_id}/replies", postController.GetPostReplies)
+	fuego.Post(g, "/", postController.CreatePost)
+	fuego.Post(g, "/{post_id}/reply", postController.CreateReply)
+	fuego.Delete(g, "/{post_id}", postController.DeletePost)
 }
 
-func (a *Application) BootstrapRecommendationsModule() chi.Router {
-
+func (a *Application) RegisterRecommendationsModule(s *fuego.Server) {
 	repo := repositories.NewRecommendationRepository(a.Mongo)
 	userRepo := repositories.NewUserRepository(a.Mongo)
 	service := services.NewRecommendationService(repo, userRepo)
 	controller := controllers.NewRecommendationController(service)
 
-	r := chi.NewRouter()
-	r.Post("/{receiverID}/{animeID}", controller.Send)
-	r.Get("/", controller.GetMine)
-	r.Delete("/{animeID}", controller.Dismiss)
-
-	return r
+	g := fuego.Group(s, "/recommendations")
+	fuego.Post(g, "/{receiverID}/{animeID}", controller.Send)
+	fuego.Get(g, "/", controller.GetMine)
+	fuego.Delete(g, "/{animeID}", controller.Dismiss)
 }
 
-func (a *Application) BootstrapAnimeListModule() chi.Router {
+func (a *Application) RegisterAnimeListModule(s *fuego.Server) {
 	listRepo := repositories.NewAnimeListRepository(a.Mongo)
 	animeRepo := repositories.NewAnimeRepository()
-
 	listService := services.NewAnimeListService(listRepo, animeRepo)
-
 	listController := controllers.NewAnimeListController(listService)
 
-	r := chi.NewRouter()
+	g := fuego.Group(s, "/animelist")
+	fuego.Get(g, "/{userId}", listController.GetUserList)
 
-	// Getting any user's list, completely public
-	r.Get("/{userId}", listController.GetUserList)
-
-	r.Group(func(r chi.Router) {
-		// Requires auth because the user is editing their own list
-		r.Use(middlewares.JWTMiddleware(a.JWTConfig))
-
-		r.Post("/{userId}/{animeId}", listController.AddAnime)
-		r.Patch("/{userId}/progress/{animeId}", listController.UpdateProgress)
-		r.Patch("/{userId}/status/{animeId}", listController.UpdateStatus)
-		r.Patch("/{userId}/notes/{animeId}", listController.UpdateNotes)
-		r.Patch("/{userId}/rating/{animeId}", listController.UpdateRating)
-		r.Delete("/{userId}/{animeId}", listController.RemoveAnimeFromList)
-	})
-
-	return r
+	authGroup := fuego.Group(g, "/")
+	fuego.Use(authGroup, middlewares.JWTMiddleware(a.JWTConfig))
+	fuego.Post(authGroup, "/{userId}/{animeId}", listController.AddAnime)
+	fuego.Patch(authGroup, "/{userId}/progress/{animeId}", listController.UpdateProgress)
+	fuego.Patch(authGroup, "/{userId}/status/{animeId}", listController.UpdateStatus)
+	fuego.Patch(authGroup, "/{userId}/notes/{animeId}", listController.UpdateNotes)
+	fuego.Patch(authGroup, "/{userId}/rating/{animeId}", listController.UpdateRating)
+	fuego.Delete(authGroup, "/{userId}/{animeId}", listController.RemoveAnimeFromList)
 }

@@ -28,7 +28,7 @@ func NewAnimeListService(listRepo interfaces.AnimeListRepository, animeRepo inte
 	}
 }
 
-func (s *AnimeListService) AddAnimeToList(ctx context.Context, userID int, animeID uint32, status value.AnimeListItemStatus) (*domain.UserListItem, error) {
+func (s *AnimeListService) AddAnimeToList(ctx context.Context, userID int, animeID uint32, status value.AnimeListItemStatus) (*dtos.UserListItemDTO, error) {
 	list, err := s.getOrCreateUserList(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func (s *AnimeListService) AddAnimeToList(ctx context.Context, userID int, anime
 		return nil, err
 	}
 
-	return newItem, nil
+	return s.mapper.ToDto(newItem, anime), nil
 }
 
 func (s *AnimeListService) RemoveAnimeFromList(ctx context.Context, userID int, animeID uint32) error {

@@ -31,7 +31,7 @@ type AnimeListService interface {
 	// FetchUserListItem(ctx context.Context, userID int, animeID uint32) (*dtos.AnimeListItemDTO, error)
 	// FetchUserList(ctx context.Context, userID int, status *value.AnimeListItemStatus) ([]*dtos.AnimeListItemDTO, error)
 
-	AddAnimeToList(ctx context.Context, userID int, animeID uint32, status value.AnimeListItemStatus) (*domain.UserListItem, error)
+	AddAnimeToList(ctx context.Context, userID int, animeID uint32, status value.AnimeListItemStatus) (*dtos.UserListItemDTO, error)
 	RemoveAnimeFromList(ctx context.Context, userID int, animeID uint32) error
 
 	UpdateStatus(ctx context.Context, userID int, animeID uint32, newStatus value.AnimeListItemStatus) error

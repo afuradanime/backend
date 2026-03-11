@@ -18,13 +18,13 @@ const (
 	UserRolesKey contextKey = "userRoles"
 )
 
-func GetUserIDFromContext(r *http.Request) (int, bool) {
-	userID, ok := r.Context().Value(UserIDKey).(int)
+func GetUserIDFromContext(ctx context.Context) (int, bool) {
+	userID, ok := ctx.Value(UserIDKey).(int)
 	return userID, ok
 }
 
-func GetUserRolesFromContext(r *http.Request) ([]value.UserRole, bool) {
-	roles, ok := r.Context().Value(UserRolesKey).(string)
+func GetUserRolesFromContext(ctx context.Context) ([]value.UserRole, bool) {
+	roles, ok := ctx.Value(UserRolesKey).(string)
 	if !ok {
 		return nil, ok
 	}
@@ -32,9 +32,9 @@ func GetUserRolesFromContext(r *http.Request) ([]value.UserRole, bool) {
 	return utils.DecodeRoleList(roles), ok
 }
 
-func IsLoggedUserOfRole(r *http.Request, role value.UserRole) bool {
+func IsLoggedUserOfRole(ctx context.Context, role value.UserRole) bool {
 
-	roles, ok := GetUserRolesFromContext(r)
+	roles, ok := GetUserRolesFromContext(ctx)
 	if !ok {
 		return false
 	}

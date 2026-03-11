@@ -1,15 +1,15 @@
 package controllers
 
 import (
-	"encoding/json"
-	"net/http"
 	"strconv"
 
 	"github.com/afuradanime/backend/internal/adapters/middlewares"
+	"github.com/afuradanime/backend/internal/adapters/repositories"
+	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/domain/value"
 	"github.com/afuradanime/backend/internal/core/interfaces"
 	"github.com/afuradanime/backend/internal/core/utils"
-	"github.com/go-chi/chi/v5"
+	"github.com/go-fuego/fuego"
 )
 
 type UserReportController struct {
@@ -20,105 +20,102 @@ func NewUserReportController(reportService interfaces.UserReportService) *UserRe
 	return &UserReportController{reportService: reportService}
 }
 
-func (c *UserReportController) SubmitReport(w http.ResponseWriter, r *http.Request) {
-	reporterID, ok := middlewares.GetUserIDFromContext(r)
+type SubmitReportBody struct {
+	Reason value.ReportReason `json:"Reason"`
+}
+
+func (c *UserReportController) SubmitReport(ctx fuego.ContextWithBody[SubmitReportBody]) (any, error) {
+	reporterID, ok := middlewares.GetUserIDFromContext(ctx.Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	targetID, err := strconv.Atoi(chi.URLParam(r, "userID"))
+	targetID, err := strconv.Atoi(ctx.PathParam("userID"))
 	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
-		return
+		return nil, fuego.BadRequestError{Detail: "Invalid user ID"}
 	}
 
-	var body struct {
-		Reason value.ReportReason `json:"Reason"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
+	body, err := ctx.Body()
+	if err != nil {
+		return nil, fuego.BadRequestError{Detail: "Invalid request body"}
 	}
 
-	if err := c.reportService.SubmitReport(r.Context(), body.Reason, targetID, reporterID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if err := c.reportService.SubmitReport(ctx.Context(), body.Reason, targetID, reporterID); err != nil {
+		return nil, fuego.InternalServerError{Detail: err.Error()}
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	return nil, nil
 }
 
-func (c *UserReportController) GetReports(w http.ResponseWriter, r *http.Request) {
-	if !middlewares.IsLoggedUserOfRole(r, value.UserRoleModerator) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	pageNumber, pageSize := utils.GetPaginationParams(r, 20)
-
-	results, pagination, err := c.reportService.GetReports(r.Context(), pageNumber, pageSize)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data":       results,
-		"pagination": pagination,
-	})
+type ReportListResponse struct {
+	Data       []repositories.ReportResult `json:"data"`
+	Pagination utils.Pagination            `json:"pagination"`
 }
 
-func (c *UserReportController) GetReportsByTarget(w http.ResponseWriter, r *http.Request) {
-	if !middlewares.IsLoggedUserOfRole(r, value.UserRoleModerator) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+func (c *UserReportController) GetReports(ctx fuego.ContextNoBody) (ReportListResponse, error) {
+	if !middlewares.IsLoggedUserOfRole(ctx.Context(), value.UserRoleModerator) {
+		return ReportListResponse{}, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	targetID, err := strconv.Atoi(chi.URLParam(r, "userID"))
+	pageNumber, pageSize := utils.GetPaginationParams(ctx, 20)
+
+	results, pagination, err := c.reportService.GetReports(ctx.Context(), pageNumber, pageSize)
 	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
-		return
+		return ReportListResponse{}, fuego.InternalServerError{Detail: err.Error()}
 	}
 
-	pageNumber, pageSize := utils.GetPaginationParams(r, 20)
-
-	reports, pagination, err := c.reportService.GetReportsByTarget(r.Context(), targetID, pageNumber, pageSize)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data":       reports,
-		"pagination": pagination,
-	})
+	return ReportListResponse{
+		Data:       results,
+		Pagination: pagination,
+	}, nil
 }
 
-func (c *UserReportController) DeleteReport(w http.ResponseWriter, r *http.Request) {
-	if !middlewares.IsLoggedUserOfRole(r, value.UserRoleModerator) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+type ReportByTargetListResponse struct {
+	Data       []domain.UserReport `json:"data"`
+	Pagination utils.Pagination    `json:"pagination"`
+}
+
+func (c *UserReportController) GetReportsByTarget(ctx fuego.ContextNoBody) (ReportByTargetListResponse, error) {
+	if !middlewares.IsLoggedUserOfRole(ctx.Context(), value.UserRoleModerator) {
+		return ReportByTargetListResponse{}, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	modID, ok := middlewares.GetUserIDFromContext(r)
+	targetID, err := strconv.Atoi(ctx.PathParam("userID"))
+	if err != nil {
+		return ReportByTargetListResponse{}, fuego.BadRequestError{Detail: "Invalid user ID"}
+	}
+
+	pageNumber, pageSize := utils.GetPaginationParams(ctx, 20)
+
+	reports, pagination, err := c.reportService.GetReportsByTarget(ctx.Context(), targetID, pageNumber, pageSize)
+	if err != nil {
+		return ReportByTargetListResponse{}, fuego.InternalServerError{Detail: err.Error()}
+	}
+
+	return ReportByTargetListResponse{
+		Data:       reports,
+		Pagination: pagination,
+	}, nil
+}
+
+func (c *UserReportController) DeleteReport(ctx fuego.ContextNoBody) (any, error) {
+	if !middlewares.IsLoggedUserOfRole(ctx.Context(), value.UserRoleModerator) {
+		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
+	}
+
+	modID, ok := middlewares.GetUserIDFromContext(ctx.Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	id, err := strconv.Atoi(ctx.PathParam("id"))
 	if err != nil {
-		http.Error(w, "Invalid report ID", http.StatusBadRequest)
-		return
+		return nil, fuego.BadRequestError{Detail: "Invalid report ID"}
 	}
 
-	if err := c.reportService.DeleteReport(r.Context(), id, modID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if err := c.reportService.DeleteReport(ctx.Context(), id, modID); err != nil {
+		return nil, fuego.InternalServerError{Detail: err.Error()}
 	}
 
-	w.WriteHeader(http.StatusOK)
+	return nil, nil
 }

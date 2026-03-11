@@ -7,14 +7,17 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"os"
 
+	"github.com/afuradanime/backend/config"
 	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/services"
+	"github.com/go-fuego/fuego"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/oauth2"
 )
 
 type GoogleAuthController struct {
+	config      *config.Config
 	oauthConfig *oauth2.Config
 	jwtService  *services.JWTService
 	userService *services.UserService
@@ -27,10 +30,15 @@ type GoogleUserInfo struct {
 	Picture string `json:"picture"`
 }
 
-func NewGoogleAuthController(oauthConfig *oauth2.Config, jwtService *services.JWTService,
-	userService *services.UserService) *GoogleAuthController {
+func NewGoogleAuthController(
+	config *config.Config,
+	oauthConfig *oauth2.Config,
+	jwtService *services.JWTService,
+	userService *services.UserService,
+) *GoogleAuthController {
 
 	return &GoogleAuthController{
+		config:      config,
 		oauthConfig: oauthConfig,
 		jwtService:  jwtService,
 		userService: userService,
@@ -46,12 +54,12 @@ func generateRandomState(length int) string {
 	return hex.EncodeToString(b)
 }
 
-func (gac *GoogleAuthController) Login(w http.ResponseWriter, r *http.Request) {
+func (gac *GoogleAuthController) Login(ctx fuego.ContextNoBody) (any, error) {
 	state := generateRandomState(16)
 	authURL := gac.oauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
 
 	// store the state in a secure cookie
-	http.SetCookie(w, &http.Cookie{
+	http.SetCookie(ctx.Response(), &http.Cookie{
 		Name:     "oauthstate",
 		Value:    state,
 		Path:     "/",
@@ -61,12 +69,12 @@ func (gac *GoogleAuthController) Login(w http.ResponseWriter, r *http.Request) {
 
 	// redirect the user to Google's OAuth 2.0 consent page
 	// this will then redirect back to our callback endpoint
-	http.Redirect(w, r, authURL, http.StatusTemporaryRedirect)
+	return ctx.Redirect(307, authURL)
 }
 
-func (gac *GoogleAuthController) Logout(w http.ResponseWriter, r *http.Request) {
+func (gac *GoogleAuthController) Logout(ctx fuego.ContextNoBody) (any, error) {
 	// Clear the JWT cookie
-	http.SetCookie(w, &http.Cookie{
+	http.SetCookie(ctx.Response(), &http.Cookie{
 		Name:     "jwt",
 		Value:    "",
 		Path:     "/",
@@ -75,55 +83,48 @@ func (gac *GoogleAuthController) Logout(w http.ResponseWriter, r *http.Request) 
 		MaxAge:   -1,    // delete the cookie immediately
 	})
 
-	http.Redirect(w, r, os.Getenv("FRONTEND_URL"), http.StatusTemporaryRedirect)
+	return ctx.Redirect(307, gac.config.FrontendURL)
 }
 
-func (gac *GoogleAuthController) WhoAmI(w http.ResponseWriter, r *http.Request) {
+func (gac *GoogleAuthController) WhoAmI(ctx fuego.ContextNoBody) (jwt.Claims, error) {
 
-	cookie, err := r.Cookie("jwt")
+	cookie, err := ctx.Cookie("jwt")
 	if err != nil {
-		http.Error(w, "Unauthorized, no JWT cookie found", http.StatusUnauthorized)
-		return
+		return nil, fuego.UnauthorizedError{Detail: "Unauthorized, no JWT cookie found"}
 	}
 
 	claims, err := gac.jwtService.ValidateJWT(cookie.Value)
 	if err != nil {
-		http.Error(w, "Unauthorized: Invalid JWT token", http.StatusUnauthorized)
-		return
+		return nil, fuego.UnauthorizedError{Detail: "Unauthorized: Invalid JWT token"}
 	}
 
 	// this returns the claims as JSON, see claims in jwt_service
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(claims.Claims)
+	return claims.Claims, nil
 }
 
-func (gac *GoogleAuthController) Callback(w http.ResponseWriter, r *http.Request) {
+func (gac *GoogleAuthController) Callback(ctx fuego.ContextNoBody) (any, error) {
 
-	cookie, err := r.Cookie("oauthstate")
+	cookie, err := ctx.Cookie("oauthstate")
 	if err != nil {
-		http.Error(w, "State Cookie not found", http.StatusBadRequest)
-		return
+		return nil, fuego.BadRequestError{Detail: "State Cookie not found"}
 	}
 
-	state := r.FormValue("state")
+	// Compare our client defined state with the state returned by Google
+	state := ctx.Request().FormValue("state")
 	if state != cookie.Value {
-		// Compare our client defined state with the state returned by Google
-		http.Error(w, "Invalid OAuth state "+state+" "+cookie.Value, http.StatusBadRequest)
-		return
+		return nil, fuego.BadRequestError{Detail: "Invalid OAuth state"}
 	}
 
-	code := r.FormValue("code")
+	code := ctx.Request().FormValue("code")
 
-	token, err := gac.oauthConfig.Exchange(r.Context(), code)
+	token, err := gac.oauthConfig.Exchange(ctx.Context(), code)
 	if err != nil {
-		http.Error(w, "Failed to exchange token: "+err.Error(), http.StatusInternalServerError)
-		return
+		return nil, fuego.InternalServerError{Detail: "Failed to exchange token: " + err.Error()}
 	}
 
 	userInfo, err := fetchGoogleUserInfo(token)
 	if err != nil {
-		http.Error(w, "Failed to fetch Google user info: "+err.Error(), http.StatusInternalServerError)
-		return
+		return nil, fuego.InternalServerError{Detail: "Failed to fetch Google user info: " + err.Error()}
 	}
 
 	// Check if user exists, if not create a new user
@@ -132,8 +133,7 @@ func (gac *GoogleAuthController) Callback(w http.ResponseWriter, r *http.Request
 		// User does not exist, create new user
 		user_model, err := domain.NewUser(userInfo.Name, userInfo.Email)
 		if err != nil {
-			http.Error(w, "Failed to create user: "+err.Error(), http.StatusInternalServerError)
-			return
+			return nil, fuego.InternalServerError{Detail: "Failed to create user: " + err.Error()}
 		}
 
 		// Set provider info in model
@@ -145,8 +145,7 @@ func (gac *GoogleAuthController) Callback(w http.ResponseWriter, r *http.Request
 		// Register the user
 		_, err = gac.userService.RegisterUser(context.Background(), user_model)
 		if err != nil {
-			http.Error(w, "Failed to register user: "+err.Error(), http.StatusInternalServerError)
-			return
+			return nil, fuego.InternalServerError{Detail: "Failed to register user: " + err.Error()}
 		}
 
 		db_user = user_model
@@ -160,12 +159,11 @@ func (gac *GoogleAuthController) Callback(w http.ResponseWriter, r *http.Request
 
 	jwtToken, err := gac.jwtService.GenerateJWT(*db_user)
 	if err != nil {
-		http.Error(w, "Failed to generate JWT: "+err.Error(), http.StatusInternalServerError)
-		return
+		return nil, fuego.InternalServerError{Detail: "Failed to generate JWT: " + err.Error()}
 	}
 
 	// Set the JWT token in a secure cookie
-	http.SetCookie(w, &http.Cookie{
+	http.SetCookie(ctx.Response(), &http.Cookie{
 		Name:     "jwt",
 		Value:    jwtToken,
 		Path:     "/",
@@ -173,7 +171,7 @@ func (gac *GoogleAuthController) Callback(w http.ResponseWriter, r *http.Request
 		Secure:   false, // https
 	})
 
-	http.Redirect(w, r, os.Getenv("FRONTEND_URL"), http.StatusTemporaryRedirect)
+	return ctx.Redirect(307, gac.config.FrontendURL)
 }
 
 func fetchGoogleUserInfo(token *oauth2.Token) (*GoogleUserInfo, error) {

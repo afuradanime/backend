@@ -1,15 +1,15 @@
 package controllers
 
 import (
-	"encoding/json"
-	"net/http"
 	"strconv"
 
 	"github.com/afuradanime/backend/internal/adapters/middlewares"
+	"github.com/afuradanime/backend/internal/adapters/repositories"
+	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/domain/value"
 	"github.com/afuradanime/backend/internal/core/interfaces"
 	"github.com/afuradanime/backend/internal/core/utils"
-	"github.com/go-chi/chi/v5"
+	"github.com/go-fuego/fuego"
 )
 
 type DescriptionTranslationController struct {
@@ -22,151 +22,144 @@ func NewDescriptionTranslationController(translationService interfaces.Descripti
 	}
 }
 
-func (c *DescriptionTranslationController) SubmitTranslation(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middlewares.GetUserIDFromContext(r)
+type SubmitTranslationBody struct {
+	TranslatedDescription string `json:"TranslatedDescription"`
+}
+
+func (c *DescriptionTranslationController) SubmitTranslation(ctx fuego.ContextWithBody[SubmitTranslationBody]) (any, error) {
+	userID, ok := middlewares.GetUserIDFromContext(ctx.Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	animeStr := chi.URLParam(r, "animeID")
-	animeID, err := strconv.Atoi(animeStr)
+	animeID, err := strconv.Atoi(ctx.PathParam("animeID"))
 	if err != nil {
-		http.Error(w, "Invalid anime ID", http.StatusBadRequest)
-		return
+		return nil, fuego.BadRequestError{Detail: "Invalid anime ID"}
 	}
 
-	var body struct {
-		TranslatedDescription string `json:"TranslatedDescription"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.TranslatedDescription == "" {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
+	body, err := ctx.Body()
+	if err != nil || body.TranslatedDescription == "" {
+		return nil, fuego.BadRequestError{Detail: "Invalid request body"}
 	}
 
-	if err := c.translationService.SubmitTranslation(r.Context(), animeID, body.TranslatedDescription, userID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if err := c.translationService.SubmitTranslation(ctx.Context(), animeID, body.TranslatedDescription, userID); err != nil {
+		return nil, fuego.InternalServerError{Detail: err.Error()}
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	return nil, nil
 }
 
-func (c *DescriptionTranslationController) GetAnimeTranslation(w http.ResponseWriter, r *http.Request) {
-	animeStr := chi.URLParam(r, "animeID")
-	animeID, err := strconv.Atoi(animeStr)
-	if err != nil {
-		http.Error(w, "Invalid anime ID", http.StatusBadRequest)
-		return
-	}
-
-	translation, translator, accepter, err := c.translationService.GetAnimeTranslation(r.Context(), animeID)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"translation": translation,
-		"translator":  translator,
-		"accepter":    accepter,
-	})
+type AnimeTranslationResponse struct {
+	Translation *domain.DescriptionTranslation `json:"translation"`
+	Translator  *domain.User                   `json:"translator"`
+	Accepter    *domain.User                   `json:"accepter"`
 }
 
-func (c *DescriptionTranslationController) GetPendingTranslations(w http.ResponseWriter, r *http.Request) {
-	if !middlewares.IsLoggedUserOfRole(r, value.UserRoleModerator) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	pageNumber, pageSize := utils.GetPaginationParams(r, 20)
-
-	results, pagination, err := c.translationService.GetPendingTranslations(r.Context(), pageNumber, pageSize)
+func (c *DescriptionTranslationController) GetAnimeTranslation(ctx fuego.ContextNoBody) (AnimeTranslationResponse, error) {
+	animeID, err := strconv.Atoi(ctx.PathParam("animeID"))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return AnimeTranslationResponse{}, fuego.BadRequestError{Detail: "Invalid anime ID"}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data":       results,
-		"pagination": pagination,
-	})
+	translation, translator, accepter, err := c.translationService.GetAnimeTranslation(ctx.Context(), animeID)
+	if err != nil {
+		return AnimeTranslationResponse{}, fuego.NotFoundError{Detail: err.Error()}
+	}
+
+	return AnimeTranslationResponse{
+		Translation: translation,
+		Translator:  translator,
+		Accepter:    accepter,
+	}, nil
 }
 
-func (c *DescriptionTranslationController) GetUserTranslations(w http.ResponseWriter, r *http.Request) {
-	userIDStr := chi.URLParam(r, "userID")
-	userID, err := strconv.Atoi(userIDStr)
-	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
-		return
-	}
-
-	pageNumber, pageSize := utils.GetPaginationParams(r, 20)
-	translations, pagination, err := c.translationService.GetMyTranslations(r.Context(), userID, pageNumber, pageSize)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data":       translations,
-		"pagination": pagination,
-	})
+type PendingTranslationsResponse struct {
+	Data       []repositories.PendingTranslationResult `json:"data"`
+	Pagination utils.Pagination                        `json:"pagination"`
 }
 
-func (c *DescriptionTranslationController) AcceptTranslation(w http.ResponseWriter, r *http.Request) {
-	if !middlewares.IsLoggedUserOfRole(r, value.UserRoleModerator) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+func (c *DescriptionTranslationController) GetPendingTranslations(ctx fuego.ContextNoBody) (PendingTranslationsResponse, error) {
+	if !middlewares.IsLoggedUserOfRole(ctx.Context(), value.UserRoleModerator) {
+		return PendingTranslationsResponse{}, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	mod, ok := middlewares.GetUserIDFromContext(r)
+	pageNumber, pageSize := utils.GetPaginationParams(ctx, 20)
+
+	results, pagination, err := c.translationService.GetPendingTranslations(ctx.Context(), pageNumber, pageSize)
+	if err != nil {
+		return PendingTranslationsResponse{}, fuego.InternalServerError{Detail: err.Error()}
+	}
+
+	return PendingTranslationsResponse{
+		Data:       results,
+		Pagination: pagination,
+	}, nil
+}
+
+type UserTranslationsResponse struct {
+	Data       []domain.DescriptionTranslation `json:"data"`
+	Pagination utils.Pagination                `json:"pagination"`
+}
+
+func (c *DescriptionTranslationController) GetUserTranslations(ctx fuego.ContextNoBody) (UserTranslationsResponse, error) {
+	userID, err := strconv.Atoi(ctx.PathParam("userID"))
+	if err != nil {
+		return UserTranslationsResponse{}, fuego.BadRequestError{Detail: "Invalid user ID"}
+	}
+
+	pageNumber, pageSize := utils.GetPaginationParams(ctx, 20)
+	translations, pagination, err := c.translationService.GetMyTranslations(ctx.Context(), userID, pageNumber, pageSize)
+	if err != nil {
+		return UserTranslationsResponse{}, fuego.InternalServerError{Detail: err.Error()}
+	}
+
+	return UserTranslationsResponse{
+		Data:       translations,
+		Pagination: pagination,
+	}, nil
+}
+
+func (c *DescriptionTranslationController) AcceptTranslation(ctx fuego.ContextNoBody) (any, error) {
+	if !middlewares.IsLoggedUserOfRole(ctx.Context(), value.UserRoleModerator) {
+		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
+	}
+
+	mod, ok := middlewares.GetUserIDFromContext(ctx.Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	idStr := chi.URLParam(r, "id")
-	id, err := strconv.Atoi(idStr)
+	id, err := strconv.Atoi(ctx.PathParam("id"))
 	if err != nil {
-		http.Error(w, "Invalid translation ID", http.StatusBadRequest)
-		return
+		return nil, fuego.BadRequestError{Detail: "Invalid translation ID"}
 	}
 
-	if err := c.translationService.AcceptTranslation(r.Context(), id, mod); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if err := c.translationService.AcceptTranslation(ctx.Context(), id, mod); err != nil {
+		return nil, fuego.InternalServerError{Detail: err.Error()}
 	}
 
-	w.WriteHeader(http.StatusOK)
+	return nil, nil
 }
 
-func (c *DescriptionTranslationController) RejectTranslation(w http.ResponseWriter, r *http.Request) {
-	if !middlewares.IsLoggedUserOfRole(r, value.UserRoleModerator) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+func (c *DescriptionTranslationController) RejectTranslation(ctx fuego.ContextNoBody) (any, error) {
+	if !middlewares.IsLoggedUserOfRole(ctx.Context(), value.UserRoleModerator) {
+		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	mod, ok := middlewares.GetUserIDFromContext(r)
+	mod, ok := middlewares.GetUserIDFromContext(ctx.Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
 
-	idStr := chi.URLParam(r, "id")
-	id, err := strconv.Atoi(idStr)
+	id, err := strconv.Atoi(ctx.PathParam("id"))
 	if err != nil {
-		http.Error(w, "Invalid translation ID", http.StatusBadRequest)
-		return
+		return nil, fuego.BadRequestError{Detail: "Invalid translation ID"}
 	}
 
-	if err := c.translationService.RejectTranslation(r.Context(), id, mod); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if err := c.translationService.RejectTranslation(ctx.Context(), id, mod); err != nil {
+		return nil, fuego.InternalServerError{Detail: err.Error()}
 	}
 
-	w.WriteHeader(http.StatusOK)
+	return nil, nil
 }
+

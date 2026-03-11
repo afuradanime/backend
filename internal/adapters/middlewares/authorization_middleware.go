@@ -9,7 +9,7 @@ import (
 func RequireRoleMiddleware(role value.UserRole) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !IsLoggedUserOfRole(r, role) {
+			if !IsLoggedUserOfRole(r.Context(), role) {
 				http.Error(w, "Forbidden", http.StatusForbidden)
 				return
 			}
