@@ -193,7 +193,9 @@ func (a *Application) RegisterPostModule(s *fuego.Server) {
 func (a *Application) RegisterRecommendationsModule(s *fuego.Server) {
 	repo := repositories.NewRecommendationRepository(a.Mongo)
 	userRepo := repositories.NewUserRepository(a.Mongo)
-	service := services.NewRecommendationService(repo, userRepo)
+	friendshipSvc := services.NewFriendshipService(userRepo, repositories.NewFriendshipRepository(a.Mongo))
+	animeListSvc := services.NewAnimeListService(repositories.NewAnimeListRepository(a.Mongo), repositories.NewAnimeRepository())
+	service := services.NewRecommendationService(repo, userRepo, friendshipSvc, animeListSvc)
 	controller := controllers.NewRecommendationController(service)
 
 	g := fuego.Group(s, "/recommendations")

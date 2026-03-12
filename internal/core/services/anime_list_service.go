@@ -211,6 +211,21 @@ func (s *AnimeListService) FetchUserList(ctx context.Context, userID int, status
 	}, nil
 }
 
+func (s *AnimeListService) IsInAnimeList(ctx context.Context, receiverID int, animeID int) (bool, error) {
+
+	list, err := s.listRepo.FetchUserList(ctx, receiverID)
+	if err != nil {
+		return false, err
+	}
+
+	if list == nil {
+		return false, nil
+	}
+
+	_, exists := list.GetListItem(uint32(animeID))
+	return exists, nil
+}
+
 func (s *AnimeListService) getOrCreateUserList(ctx context.Context, userID int) (*domain.UserAnimeList, error) {
 	list, err := s.listRepo.FetchUserList(ctx, userID)
 	if err != nil {

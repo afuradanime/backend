@@ -42,4 +42,6 @@ type AnimeListService interface {
 
 	FetchUserList(ctx context.Context, userID int, status *value.AnimeListItemStatus) (*dtos.UserAnimeListDTO, error)
 	FetchUserListItem(ctx context.Context, userID int, animeID uint32) (*dtos.UserListItemDTO, error)
+
+	IsInAnimeList(ctx context.Context, receiverID int, animeID int) (bool, error)
 }

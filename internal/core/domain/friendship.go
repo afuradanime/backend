@@ -60,3 +60,7 @@ func (f *Friendship) Decline() error {
 func (f *Friendship) GetStatus() value.FriendshipStatus {
 	return f.Status
 }
+
+func (f *Friendship) AreFriends() bool {
+	return f.Status == value.FriendshipStatusAccepted
+}

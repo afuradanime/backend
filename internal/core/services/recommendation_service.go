@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/afuradanime/backend/internal/core/domain"
 	domain_errors "github.com/afuradanime/backend/internal/core/errors"
@@ -12,12 +13,21 @@ import (
 type RecommendationService struct {
 	recommendationRepo interfaces.RecommendationRepository
 	userRepo           interfaces.UserRepository
+	friendshipService  interfaces.FriendshipService
+	animeListService   interfaces.AnimeListService
 }
 
-func NewRecommendationService(recommendationRepo interfaces.RecommendationRepository, userRepo interfaces.UserRepository) *RecommendationService {
+func NewRecommendationService(
+	recommendationRepo interfaces.RecommendationRepository,
+	userRepo interfaces.UserRepository,
+	friendshipService interfaces.FriendshipService,
+	animeListService interfaces.AnimeListService,
+) *RecommendationService {
 	return &RecommendationService{
 		recommendationRepo: recommendationRepo,
 		userRepo:           userRepo,
+		friendshipService:  friendshipService,
+		animeListService:   animeListService,
 	}
 }
 
@@ -52,6 +62,25 @@ func (s *RecommendationService) Send(ctx context.Context, initiatorID, receiverI
 	}
 	if exists {
 		return domain_errors.AlreadyRecommended{}
+	}
+
+	// Check if friends
+	friendship, err := s.friendshipService.FetchFriendshipStatus(ctx, initiatorID, receiverID)
+	if friendship == nil || err != nil || !friendship.AreFriends() {
+		return domain_errors.NotFriendsError{}
+	}
+
+	// Check if anime is in receiver's list
+	inList, err := s.animeListService.IsInAnimeList(ctx, receiverID, animeID)
+	if err != nil {
+		return err
+	}
+
+	if inList {
+		return &domain_errors.AnimeAlreadyInListError{
+			UserID:  strconv.Itoa(receiverID),
+			AnimeID: strconv.Itoa(animeID),
+		}
 	}
 
 	rec := domain.NewRecommendation(initiatorID, receiverID, animeID)
