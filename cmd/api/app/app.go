@@ -5,6 +5,7 @@ import (
 
 	"github.com/afuradanime/backend/cmd/api/app/database"
 	"github.com/afuradanime/backend/config"
+	"github.com/afuradanime/backend/internal/adapters/middlewares"
 	"github.com/afuradanime/backend/internal/core/utils"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-fuego/fuego"
@@ -56,7 +57,8 @@ func New() *Application {
 func (app *Application) Run() {
 
 	s := fuego.NewServer(
-		fuego.WithAddr("localhost:"+app.Config.Port),
+		fuego.WithAddr(":"+app.Config.Port),
+		fuego.WithGlobalMiddlewares(middlewares.CORSMiddleware),
 		fuego.WithEngineOptions(
 			fuego.WithOpenAPIConfig(fuego.OpenAPIConfig{
 				SwaggerURL:   "/swagger",
@@ -70,6 +72,7 @@ func (app *Application) Run() {
 			}),
 		),
 	)
+
 	app.InitRoutes(s)
 
 	log.Println("Server started on port " + app.Config.Port)

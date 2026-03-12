@@ -18,7 +18,7 @@ func (a *Application) InitRoutes(s *fuego.Server) {
 	fuego.Use(s,
 		middleware.Logger,
 		middleware.Recoverer,
-		middlewares.CORSMiddleware,
+		// middlewares.CORSMiddleware,
 		globalLimiter.Middleware,
 	)
 
