@@ -12,14 +12,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func (a *Application) Bootstrap() {
+func Bootstrap(m *mongo.Database) {
 
 	// Nuke EVERYTHING
-	a.Mongo.Drop(context.Background())
+	m.Drop(context.Background())
 
 	// Create repositories
-	userRepo := repositories.NewUserRepository(a.Mongo)
-	friendshipRepo := repositories.NewFriendshipRepository(a.Mongo)
+	userRepo := repositories.NewUserRepository(m)
+	friendshipRepo := repositories.NewFriendshipRepository(m)
 
 	// Bootstrap users and get their auto-generated IDs
 	krayID, taikoID, testID := BootstrapUsers(context.Background(), userRepo)
@@ -28,23 +28,23 @@ func (a *Application) Bootstrap() {
 	BootstrapFriendships(context.Background(), friendshipRepo, krayID, taikoID, testID)
 
 	// Bootstrap translation suggestions
-	descRepo := repositories.NewDescriptionTranslationRepository(a.Mongo)
+	descRepo := repositories.NewDescriptionTranslationRepository(m)
 	BootstrapTranslations(context.Background(), descRepo)
 
 	// Bootstrap user reports
-	reportRepo := repositories.NewUserReportRepository(a.Mongo)
+	reportRepo := repositories.NewUserReportRepository(m)
 	BootstrapReports(context.Background(), reportRepo)
 
 	// Bootstrap a post conversation
-	postRepo := repositories.NewPostRepository(a.Mongo)
+	postRepo := repositories.NewPostRepository(m)
 	BootstrapPostConversation(context.Background(), postRepo, krayID, taikoID, testID)
 
 	// Bootstrap animelist
-	animeListRepo := repositories.NewAnimeListRepository(a.Mongo)
+	animeListRepo := repositories.NewAnimeListRepository(m)
 	BootstrapAnimeList(context.Background(), animeListRepo, krayID)
 
 	// Database Indices
-	BootstrapIndices(context.Background(), a.Mongo)
+	BootstrapIndices(context.Background(), m)
 }
 
 func BootstrapUsers(ctx context.Context, userRepo *repositories.UserRepository) (krayID, taikoID, testID int) {

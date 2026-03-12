@@ -26,5 +26,4 @@ type RatingDTO struct {
 	Story      uint8 `json:"story"`
 	Visuals    uint8 `json:"visuals"`
 	Soundtrack uint8 `json:"soundtrack"`
-	Enjoyment  uint8 `json:"enjoyment"`
 }

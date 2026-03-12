@@ -22,6 +22,9 @@ type Application struct {
 
 func New() *Application {
 
+	env := utils.GetApplicationEnvironment()
+	log.Println("Starting application in " + env + " environment...")
+
 	Config := config.Load()
 	OAuth2 := config.LoadOauth2()
 	JWTConfig := config.LoadJWTConfig()
@@ -46,9 +49,9 @@ func New() *Application {
 		JWTConfig:    JWTConfig,
 	}
 
-	if Config.ShouldBootstrap {
+	if Config.ShouldBootstrap || env == "test" /* Always bootstrap on test */ {
 		log.Println("Bootstrapping database...")
-		app.Bootstrap()
+		Bootstrap(app.Mongo)
 	}
 
 	return app
