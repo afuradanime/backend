@@ -60,7 +60,7 @@ func New() *Application {
 func (app *Application) Run() {
 
 	s := fuego.NewServer(
-		fuego.WithAddr(":"+app.Config.Port),
+		fuego.WithAddr("localhost:"+app.Config.Port),
 		fuego.WithGlobalMiddlewares(middlewares.CORSMiddleware),
 		fuego.WithEngineOptions(
 			fuego.WithOpenAPIConfig(fuego.OpenAPIConfig{

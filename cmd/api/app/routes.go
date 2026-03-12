@@ -49,13 +49,20 @@ func (a *Application) RegisterTranslationsModule(s *fuego.Server) {
 	g := fuego.Group(s, "/translations")
 
 	// Public
-	fuego.Post(g, "/anime/{animeID}", translationController.SubmitTranslation)
 	fuego.Get(g, "/anime/{animeID}", translationController.GetAnimeTranslation)
 	fuego.Get(g, "/user/{userID}", translationController.GetUserTranslations)
 
+	// Authenticated
+	userGroup := fuego.Group(g, "/")
+	fuego.Use(userGroup, middlewares.JWTMiddleware(a.JWTConfig))
+	fuego.Post(userGroup, "/anime/{animeID}", translationController.SubmitTranslation)
+
 	// Moderator only
 	modGroup := fuego.Group(g, "/")
-	fuego.Use(modGroup, middlewares.RequireRoleMiddleware(value.UserRoleModerator))
+	fuego.Use(
+		modGroup,
+		middlewares.JWTMiddleware(a.JWTConfig),
+		middlewares.RequireRoleMiddleware(value.UserRoleModerator))
 	fuego.Put(modGroup, "/{id}/accept", translationController.AcceptTranslation)
 	fuego.Put(modGroup, "/{id}/reject", translationController.RejectTranslation)
 	fuego.Get(modGroup, "/pending", translationController.GetPendingTranslations)
@@ -89,14 +96,33 @@ func (a *Application) RegisterAnimeModule(s *fuego.Server) {
 	animeController := controllers.NewAnimeController(animeService)
 
 	g := fuego.Group(s, "/anime")
+
+	// Shared query param options
+	filterOpts := []func(*fuego.BaseRoute){
+		fuego.OptionQuery("q", "Search by name"),
+		fuego.OptionQuery("type", "Filter by type"),
+		fuego.OptionQuery("status", "Filter by status"),
+		fuego.OptionQuery("start_date", "Filter by start date (unix timestamp)"),
+		fuego.OptionQuery("end_date", "Filter by end date (unix timestamp)"),
+		fuego.OptionQuery("min_episodes", "Minimum number of episodes"),
+		fuego.OptionQuery("max_episodes", "Maximum number of episodes"),
+	}
+
+	paginationOpts := []func(*fuego.BaseRoute){
+		fuego.OptionQuery("pageNumber", "Page number (0-indexed)"),
+		fuego.OptionQuery("pageSize", "Number of results per page"),
+	}
+
+	allOpts := append(filterOpts, paginationOpts...)
+
 	fuego.Get(g, "/{id}", animeController.GetAnimeByID)
 	fuego.Get(g, "/random", animeController.GetRandomAnime)
-	fuego.Get(g, "/search", animeController.SearchAnime)
-	fuego.Get(g, "/seasonal", animeController.GetAnimeThisSeason)
-	fuego.Get(g, "/studio/{id}", animeController.GetAnimeByStudioID)
-	fuego.Get(g, "/producer/{id}", animeController.GetAnimeByProducerID)
-	fuego.Get(g, "/licensor/{id}", animeController.GetAnimeByLicensorID)
-	fuego.Get(g, "/tags/{id}", animeController.GetAnimeByTagID)
+	fuego.Get(g, "/search", animeController.SearchAnime, allOpts...)
+	fuego.Get(g, "/seasonal", animeController.GetAnimeThisSeason, allOpts...)
+	fuego.Get(g, "/studio/{id}", animeController.GetAnimeByStudioID, allOpts...)
+	fuego.Get(g, "/producer/{id}", animeController.GetAnimeByProducerID, allOpts...)
+	fuego.Get(g, "/licensor/{id}", animeController.GetAnimeByLicensorID, allOpts...)
+	fuego.Get(g, "/tags/{id}", animeController.GetAnimeByTagID, allOpts...)
 }
 
 func (a *Application) RegisterFriendsModule(s *fuego.Server) {

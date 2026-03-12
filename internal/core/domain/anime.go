@@ -13,7 +13,7 @@ type Anime struct {
 	Title string
 
 	Synonyms     []string
-	Descriptions []value.Description
+	Descriptions value.Description
 
 	Type     value.AnimeType
 	Source   string
@@ -101,7 +101,7 @@ func NewAnime(
 
 		// Full anime only fields initialized but empty
 		Synonyms:     []string{},
-		Descriptions: []value.Description{},
+		Descriptions: value.Description{},
 		Tags:         []value.Tag{},
 		Producers:    []value.Producer{},
 		Licensors:    []value.Licensor{},
@@ -115,7 +115,7 @@ func NewAnime(
 // We can use these to fill in the full anime fields after we create the partial anime with the NewAnime constructor
 // Perhaps we should have methods to add as list
 func (anime *Anime) AddDescription(desc value.Description) {
-	anime.Descriptions = append(anime.Descriptions, desc)
+	anime.Descriptions = desc
 }
 
 func (anime *Anime) AddSynonym(synonym string) {

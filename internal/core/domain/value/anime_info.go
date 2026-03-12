@@ -19,14 +19,12 @@ type Description struct {
 type Producer struct {
 	ID   uint32
 	Name string
-	Type string
 	URL  string
 }
 
 type Licensor struct {
 	ID   uint32
 	Name string
-	Type string
 	URL  string
 }
 

@@ -19,18 +19,19 @@ func GetPaginationParams(ctx fuego.ContextNoBody, defaultSize int) (pageNumber, 
 	pageSize = defaultSize
 
 	if pageStr := ctx.QueryParam("pageNumber"); pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p >= 1 {
+		if p, err := strconv.Atoi(pageStr); err == nil {
 			pageNumber = p
 		}
 	}
 
 	if sizeStr := ctx.QueryParam("pageSize"); sizeStr != "" {
-		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 {
+		if s, err := strconv.Atoi(sizeStr); err == nil {
 			pageSize = s
 		}
 	}
 
-	pageSize = Clamp(pageSize, 1, MAX_PAGE_SIZE)
+	pageNumber = ClampBottom(pageNumber, 0)
+	pageSize = Clamp(pageSize, 0, MAX_PAGE_SIZE)
 
 	return
 }

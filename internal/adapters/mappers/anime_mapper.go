@@ -67,17 +67,26 @@ func (m *AnimeMapper) CtoGo(animePtr unsafe.Pointer) (*domain.Anime, error) {
 	}
 
 	// Fill descriptions
-	if cAnime.descriptions.count > 0 {
-		descriptionsSlice := unsafe.Slice(cAnime.descriptions.items, cAnime.descriptions.count)
-		for _, descPtr := range descriptionsSlice {
-			if descPtr.description != nil {
-				desc := value.Description{
-					Language:    value.Language(descPtr.language),
-					Description: C.GoString(descPtr.description),
-				}
-				anime.AddDescription(desc)
-			}
+	// if cAnime.descriptions.count > 0 {
+	// 	descriptionsSlice := unsafe.Slice(cAnime.descriptions.items, cAnime.descriptions.count)
+	// 	for _, descPtr := range descriptionsSlice {
+	// 		if descPtr.description != nil {
+	// 			desc := value.Description{
+	// 				Language:    value.Language(descPtr.language),
+	// 				Description: C.GoString(descPtr.description),
+	// 			}
+	// 			anime.AddDescription(desc)
+	// 		}
+	// 	}
+	// }
+
+	if cAnime.description != nil {
+		desc := value.Description{
+			Language:    value.LanguagePortuguese,
+			Description: C.GoString(cAnime.description),
 		}
+
+		anime.AddDescription(desc)
 	}
 
 	// Fill tags
@@ -101,7 +110,6 @@ func (m *AnimeMapper) CtoGo(animePtr unsafe.Pointer) (*domain.Anime, error) {
 			producer := value.Producer{
 				ID:   uint32(producerPtr.id),
 				Name: C.GoString(producerPtr.name),
-				Type: C.GoString(producerPtr._type),
 				URL:  C.GoString(producerPtr.url),
 			}
 			anime.AddProducer(producer)
@@ -115,7 +123,6 @@ func (m *AnimeMapper) CtoGo(animePtr unsafe.Pointer) (*domain.Anime, error) {
 			licensor := value.Licensor{
 				ID:   uint32(licensorPtr.id),
 				Name: C.GoString(licensorPtr.name),
-				Type: C.GoString(licensorPtr._type),
 				URL:  C.GoString(licensorPtr.url),
 			}
 			anime.AddLicensor(licensor)
@@ -187,7 +194,6 @@ func (m *AnimeMapper) CToGoProducer(ptr unsafe.Pointer) (*value.Producer, error)
 	return &value.Producer{
 		ID:   uint32(cProducer.id),
 		Name: C.GoString(cProducer.name),
-		Type: C.GoString(cProducer._type),
 		URL:  C.GoString(cProducer.url),
 	}, nil
 }
@@ -198,7 +204,6 @@ func (m *AnimeMapper) CToGoLicensor(ptr unsafe.Pointer) (*value.Licensor, error)
 	return &value.Licensor{
 		ID:   uint32(cLicensor.id),
 		Name: C.GoString(cLicensor.name),
-		Type: C.GoString(cLicensor._type),
 		URL:  C.GoString(cLicensor.url),
 	}, nil
 }

@@ -162,4 +162,3 @@ func (c *DescriptionTranslationController) RejectTranslation(ctx fuego.ContextNo
 
 	return nil, nil
 }
-
