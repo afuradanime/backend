@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"log"
 	"strconv"
 
 	"github.com/afuradanime/backend/internal/adapters/dtos"
@@ -14,16 +15,18 @@ import (
 )
 
 type AnimeListService struct {
-	listRepo  interfaces.AnimeListRepository
-	animeRepo interfaces.AnimeRepository
-	mapper    *mappers.AnimeListMapper
+	listRepo           interfaces.AnimeListRepository
+	animeRepo          interfaces.AnimeRepository
+	ratingCacheService interfaces.RatingCacheService
+	mapper             *mappers.AnimeListMapper
 }
 
-func NewAnimeListService(listRepo interfaces.AnimeListRepository, animeRepo interfaces.AnimeRepository) *AnimeListService {
+func NewAnimeListService(listRepo interfaces.AnimeListRepository, animeRepo interfaces.AnimeRepository, ratingCacheService interfaces.RatingCacheService) *AnimeListService {
 	return &AnimeListService{
-		listRepo:  listRepo,
-		animeRepo: animeRepo,
-		mapper:    mappers.NewAnimeListMapper(),
+		listRepo:           listRepo,
+		animeRepo:          animeRepo,
+		ratingCacheService: ratingCacheService,
+		mapper:             mappers.NewAnimeListMapper(),
 	}
 }
 
@@ -139,8 +142,27 @@ func (s *AnimeListService) UpdateRating(ctx context.Context, userID int, animeID
 		return err
 	}
 
+	hadRating := item.Rating != nil
+	var oldRating domain.Rating
+	if hadRating {
+		oldRating = *domain.Uint16ToRating(*item.Rating)
+	}
+
 	if err := item.AddRating(story, visuals, soundtrack); err != nil {
 		return err
+	}
+
+	if !hadRating {
+		err = s.ratingCacheService.InsertOrUpdateRating(userID, int(animeID), story, visuals, soundtrack)
+	} else {
+		err = s.ratingCacheService.UpdateExistingRating(
+			userID, int(animeID),
+			oldRating.Story, oldRating.Visuals, oldRating.Soundtrack,
+			story, visuals, soundtrack,
+		)
+	}
+	if err != nil {
+		log.Printf("Failed to cache rating for user %d and anime %d: %v", userID, animeID, err)
 	}
 
 	return s.listRepo.SaveUserList(ctx, list)
@@ -150,6 +172,20 @@ func (s *AnimeListService) RemoveRating(ctx context.Context, userID int, animeID
 	list, item, err := s.getListAndItem(ctx, userID, animeID)
 	if err != nil {
 		return err
+	}
+
+	// Remove from cache, can fail silently if cache is unavailable, but it better not
+	if item.Rating != nil {
+		readeableRating := domain.Uint16ToRating(*item.Rating)
+		s.ratingCacheService.RemoveRating(
+			userID,
+			int(animeID),
+			readeableRating.Story,
+			readeableRating.Visuals,
+			readeableRating.Soundtrack,
+		)
+	} else {
+		log.Printf("Unexpected state: trying to remove rating for user %d and anime %d but item has no rating", userID, animeID)
 	}
 
 	item.RemoveRating()

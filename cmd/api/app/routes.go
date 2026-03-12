@@ -29,6 +29,7 @@ func (a *Application) InitRoutes(s *fuego.Server) {
 	a.RegisterFriendsModule(s)
 	a.RegisterTranslationsModule(s)
 	a.RegisterAnimeListModule(s)
+	a.RegisterRatingCacheModule(s)
 
 	// Group for globally protected routes
 	protected := fuego.Group(s, "/")
@@ -194,7 +195,9 @@ func (a *Application) RegisterRecommendationsModule(s *fuego.Server) {
 	repo := repositories.NewRecommendationRepository(a.Mongo)
 	userRepo := repositories.NewUserRepository(a.Mongo)
 	friendshipSvc := services.NewFriendshipService(userRepo, repositories.NewFriendshipRepository(a.Mongo))
-	animeListSvc := services.NewAnimeListService(repositories.NewAnimeListRepository(a.Mongo), repositories.NewAnimeRepository())
+	ratingCacheRepo := repositories.NewRatingCacheRepository(a.Mongo)
+	ratingCacheService := services.NewRatingCacheService(*ratingCacheRepo)
+	animeListSvc := services.NewAnimeListService(repositories.NewAnimeListRepository(a.Mongo), repositories.NewAnimeRepository(), ratingCacheService)
 	service := services.NewRecommendationService(repo, userRepo, friendshipSvc, animeListSvc)
 	controller := controllers.NewRecommendationController(service)
 
@@ -207,7 +210,9 @@ func (a *Application) RegisterRecommendationsModule(s *fuego.Server) {
 func (a *Application) RegisterAnimeListModule(s *fuego.Server) {
 	listRepo := repositories.NewAnimeListRepository(a.Mongo)
 	animeRepo := repositories.NewAnimeRepository()
-	listService := services.NewAnimeListService(listRepo, animeRepo)
+	ratingCacheRepo := repositories.NewRatingCacheRepository(a.Mongo)
+	ratingCacheService := services.NewRatingCacheService(*ratingCacheRepo)
+	listService := services.NewAnimeListService(listRepo, animeRepo, ratingCacheService)
 	listController := controllers.NewAnimeListController(listService)
 
 	g := fuego.Group(s, "/animelist")
@@ -221,4 +226,13 @@ func (a *Application) RegisterAnimeListModule(s *fuego.Server) {
 	fuego.Patch(authGroup, "/{userId}/notes/{animeId}", listController.UpdateNotes)
 	fuego.Patch(authGroup, "/{userId}/rating/{animeId}", listController.UpdateRating)
 	fuego.Delete(authGroup, "/{userId}/{animeId}", listController.RemoveAnimeFromList)
+}
+
+func (a *Application) RegisterRatingCacheModule(s *fuego.Server) {
+	ratingCacheRepo := repositories.NewRatingCacheRepository(a.Mongo)
+	ratingCacheService := services.NewRatingCacheService(*ratingCacheRepo)
+	ratingCacheController := controllers.NewRatingCacheController(ratingCacheService)
+
+	g := fuego.Group(s, "/ratingcache")
+	fuego.Get(g, "/{animeId}", ratingCacheController.GetRatingCache)
 }

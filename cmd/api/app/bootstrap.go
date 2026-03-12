@@ -8,6 +8,8 @@ import (
 	"github.com/afuradanime/backend/internal/adapters/repositories"
 	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/domain/value"
+	"github.com/afuradanime/backend/internal/core/interfaces"
+	"github.com/afuradanime/backend/internal/core/services"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -41,7 +43,10 @@ func Bootstrap(m *mongo.Database) {
 
 	// Bootstrap animelist
 	animeListRepo := repositories.NewAnimeListRepository(m)
-	BootstrapAnimeList(context.Background(), animeListRepo, krayID)
+	ratingCacheRepo := repositories.NewRatingCacheRepository(m)
+	ratingCacheService := services.NewRatingCacheService(*ratingCacheRepo)
+	animeListService := services.NewAnimeListService(animeListRepo, repositories.NewAnimeRepository(), ratingCacheService)
+	BootstrapAnimeList(context.Background(), animeListRepo, krayID, animeListService)
 
 	// Database Indices
 	BootstrapIndices(context.Background(), m)
@@ -209,7 +214,7 @@ func BootstrapIndices(ctx context.Context, m *mongo.Database) {
 	})
 }
 
-func BootstrapAnimeList(ctx context.Context, animeListRepo *repositories.AnimeListRepository, userID int) {
+func BootstrapAnimeList(ctx context.Context, animeListRepo *repositories.AnimeListRepository, userID int, animeListServ interfaces.AnimeListService) {
 	testList := domain.NewPersonalAnimeList(userID)
 
 	testEntry := domain.NewAnimeListItem(userID, 1, value.AnimeListItemStatusWatching)
@@ -218,17 +223,23 @@ func BootstrapAnimeList(ctx context.Context, animeListRepo *repositories.AnimeLi
 	testEntry.AddRating(8, 9, 7)
 	testList.AddListItem(*testEntry)
 
-	if err := animeListRepo.SaveUserList(ctx, testList); err != nil {
-		panic(err)
-	}
+	SuperFunnyListFiller3000(userID, 100, animeListServ)
+
+	anotherTestList := domain.NewPersonalAnimeList(userID + 1)
+
+	anotherTestEntry := domain.NewAnimeListItem(userID+1, 1, value.AnimeListItemStatusCompleted)
+	anotherTestEntry.UpdateProgress(12, 12)
+	anotherTestEntry.UpdateNotes("Cowboy.")
+	anotherTestEntry.AddRating(8, 9, 7)
+	anotherTestList.AddListItem(*anotherTestEntry)
+
+	SuperFunnyListFiller3000(userID+1, 100, animeListServ)
 }
 
-func SuperFunnyListFiller3000(list *domain.UserAnimeList, userID, limit int) {
+func SuperFunnyListFiller3000(userID, limit int, animeListService interfaces.AnimeListService) {
 	for i := 1; i <= limit; i++ {
-		entry := domain.NewAnimeListItem(userID, uint32(i), value.AnimeListItemStatusWatching)
-		entry.UpdateProgress(uint32(i%12), 12)
-		entry.UpdateNotes("Anime número " + strconv.Itoa(i))
-		entry.AddRating(uint8((i%10)+1), uint8((i%10)+1), uint8((i%10)+1))
-		list.AddListItem(*entry)
+		animeListService.AddAnimeToList(context.Background(), userID, uint32(i), value.AnimeListItemStatusWatching)
+		animeListService.UpdateRating(context.Background(), userID, uint32(i), uint8((i%10)+1), uint8((i%10)+1), uint8((i%10)+1))
+		animeListService.UpdateProgress(context.Background(), userID, uint32(i), uint32(i%12))
 	}
 }
