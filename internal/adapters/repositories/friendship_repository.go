@@ -116,6 +116,7 @@ func (r *FriendshipRepository) GetFriends(ctx context.Context, userId int, pageN
 	countPipeline := mongo.Pipeline{matchStage}
 	countStage := bson.D{{Key: "$count", Value: "total"}}
 	countCursor, err := r.collection.Aggregate(ctx, append(countPipeline, countStage))
+	defer countCursor.Close(ctx)
 
 	if err != nil {
 		return nil, utils.Pagination{}, err
@@ -149,6 +150,8 @@ func (r *FriendshipRepository) GetFriends(ctx context.Context, userId int, pageN
 	}
 
 	cursor, err := r.collection.Aggregate(ctx, pipeline)
+	defer cursor.Close(ctx)
+
 	if err != nil {
 		return nil, utils.Pagination{}, err
 	}
@@ -191,6 +194,7 @@ func (r *FriendshipRepository) GetPendingFriendRequests(ctx context.Context, use
 		matchStage,
 		bson.D{{Key: "$count", Value: "total"}},
 	})
+	defer countCursor.Close(ctx)
 
 	if err != nil {
 		return nil, utils.Pagination{}, err
@@ -219,6 +223,8 @@ func (r *FriendshipRepository) GetPendingFriendRequests(ctx context.Context, use
 	}
 
 	cursor, err := r.collection.Aggregate(ctx, pipeline)
+	defer cursor.Close(ctx)
+
 	if err != nil {
 		return nil, utils.Pagination{}, err
 	}

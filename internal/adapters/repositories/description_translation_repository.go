@@ -92,6 +92,8 @@ func (r *DescriptionTranslationRepository) GetTranslationByAnime(ctx context.Con
 	}
 
 	cursor, err := r.collection.Aggregate(ctx, pipeline)
+	defer cursor.Close(ctx)
+
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -108,7 +110,7 @@ func (r *DescriptionTranslationRepository) GetTranslationByAnime(ctx context.Con
 	}
 
 	if len(results) == 0 {
-		return nil, nil, nil, mongo.ErrNoDocuments
+		return nil, nil, nil, nil
 	}
 
 	result := results[0]
@@ -160,6 +162,8 @@ func (r *DescriptionTranslationRepository) GetTranslationsByUser(
 		SetSort(bson.M{"_id": -1})
 
 	cursor, err := r.collection.Find(ctx, filter, findOptions)
+	defer cursor.Close(ctx)
+
 	if err != nil {
 		return nil, utils.Pagination{}, err
 	}
@@ -205,6 +209,8 @@ func (r *DescriptionTranslationRepository) GetPendingTranslations(
 		matchStage,
 		bson.D{{Key: "$count", Value: "total"}},
 	})
+	defer countCursor.Close(ctx)
+
 	if err != nil {
 		return nil, utils.Pagination{}, err
 	}
@@ -229,6 +235,8 @@ func (r *DescriptionTranslationRepository) GetPendingTranslations(
 	}
 
 	cursor, err := r.collection.Aggregate(ctx, pipeline)
+	defer cursor.Close(ctx)
+
 	if err != nil {
 		return nil, utils.Pagination{}, err
 	}

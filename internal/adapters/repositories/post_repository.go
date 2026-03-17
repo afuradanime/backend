@@ -33,6 +33,8 @@ func (r *PostRepository) GetPostReplies(ctx context.Context, parentID string) ([
 	// Return replies ordered by creation date (newest first)
 	findOpts := options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}})
 	cursor, err := r.collection.Find(ctx, bson.M{"parent_id": parentID}, findOpts)
+	defer cursor.Close(ctx)
+
 	if err != nil {
 		return nil, errors.New("failed to fetch post replies: " + err.Error())
 	}

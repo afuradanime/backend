@@ -88,6 +88,8 @@ func (r *UserReportRepository) GetReports(ctx context.Context, pageNumber, pageS
 		matchStage,
 		bson.D{{Key: "$count", Value: "total"}},
 	})
+	defer countCursor.Close(ctx)
+
 	if err != nil {
 		return nil, utils.Pagination{}, err
 	}
@@ -112,6 +114,8 @@ func (r *UserReportRepository) GetReports(ctx context.Context, pageNumber, pageS
 	}
 
 	cursor, err := r.collection.Aggregate(ctx, pipeline)
+	defer cursor.Close(ctx)
+
 	if err != nil {
 		return nil, utils.Pagination{}, err
 	}
@@ -158,6 +162,8 @@ func (r *UserReportRepository) GetReportsByTarget(ctx context.Context, targetUse
 		SetLimit(int64(pageSize)).
 		SetSort(bson.M{"_id": -1}),
 	)
+	defer cursor.Close(ctx)
+
 	if err != nil {
 		return nil, utils.Pagination{}, err
 	}
