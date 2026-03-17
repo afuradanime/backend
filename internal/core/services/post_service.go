@@ -5,35 +5,64 @@ import (
 	"errors"
 	"strconv"
 
+	"github.com/afuradanime/backend/internal/adapters/middlewares"
 	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/domain/value"
 	domain_errors "github.com/afuradanime/backend/internal/core/errors"
 	"github.com/afuradanime/backend/internal/core/interfaces"
+	"github.com/afuradanime/backend/internal/core/utils"
 )
 
 type PostService struct {
 	postRepo          interfaces.PostRepository
 	userRepo          interfaces.UserRepository
 	friendshipService interfaces.FriendshipService
+	groupService      interfaces.GroupService
 	animeService      interfaces.AnimeService
 }
 
-func NewPostService(postRepo interfaces.PostRepository, userRepo interfaces.UserRepository, friendshipService interfaces.FriendshipService) *PostService {
+func NewPostService(
+	postRepo interfaces.PostRepository,
+	userRepo interfaces.UserRepository,
+	friendshipService interfaces.FriendshipService,
+	animeService interfaces.AnimeService,
+) *PostService {
 	return &PostService{
 		postRepo:          postRepo,
 		userRepo:          userRepo,
 		friendshipService: friendshipService,
+		animeService:      animeService,
 	}
 }
 
 func (s *PostService) GetPostById(ctx context.Context, postId string) (*domain.Post, error) {
 	// no domain rules, anyone can fetch any post and see it, even if it's deleted
 	// the only thing we're limiting are interactions like posting and replying
-	return s.postRepo.GetPostById(ctx, postId)
+	post, err := s.postRepo.GetPostById(ctx, postId)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse markdown
+	// We do this server side because today user 1 might be called Makoto naegi
+	// But tomorrow he may be called Nagito komaeda or something we never know
+	middlewares.ParsePost(post, ctx, s.animeService, s.userRepo)
+
+	return post, err
 }
 
 func (s *PostService) GetPostReplies(ctx context.Context, parentID string) ([]*domain.Post, error) {
-	return s.postRepo.GetPostReplies(ctx, parentID)
+
+	posts, err := s.postRepo.GetPostReplies(ctx, parentID)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, element := range posts {
+		middlewares.ParsePost(element, ctx, s.animeService, s.userRepo)
+	}
+
+	return posts, err
 }
 
 // Create a top most post, which is a post that is not a reply to another post
@@ -73,10 +102,29 @@ func (s *PostService) CreatePost(ctx context.Context, parentId string, parentTyp
 			}
 		}
 	} else if parentType == value.ParentTypeThread {
-		_, err := s.animeService.FetchAnimeByID(uint32(parentType))
+
+		animeId, err := strconv.Atoi(parentId)
 		if err != nil {
 			return nil, errors.New("Invalid parent id: " + err.Error())
 		}
+
+		_, err = s.animeService.FetchAnimeByID(uint32(animeId))
+		if err != nil {
+			return nil, errors.New("Invalid parent id: " + err.Error())
+		}
+	} else if parentType == value.ParentTypeGroup {
+		_, err := s.groupService.GetGroup(ctx, parentId)
+		if err != nil {
+			return nil, errors.New("Invalid parent id: " + err.Error())
+		}
+	} else {
+		return nil, errors.New("Unsupported thread context")
+	}
+
+	// Checkpoint 3 - Sanitize input
+	cleanText := utils.SanitizeText(text)
+	if len(cleanText) == 0 {
+		return nil, errors.New("post content cannot be empty after sanitization")
 	}
 
 	// Checkpoint X - Anything else, we could add group blockage or forum blockage, etc..
@@ -84,7 +132,7 @@ func (s *PostService) CreatePost(ctx context.Context, parentId string, parentTyp
 
 	// All checkpoints cleared, we can create the post
 	newPost := domain.NewPost(
-		parentId, parentType, text, poster.ID,
+		parentId, parentType, cleanText, poster.ID,
 	)
 
 	return s.postRepo.CreatePost(ctx, newPost)
@@ -124,8 +172,13 @@ func (s *PostService) CreateReply(ctx context.Context, replyToPostID string, tex
 		}
 	}
 
+	cleanText := utils.SanitizeText(text)
+	if len(cleanText) == 0 {
+		return nil, errors.New("post content cannot be empty after sanitization")
+	}
+
 	// Checkpoint 3 - The same checkpoints as createPost apply to replies as well
-	reply, err := s.CreatePost(ctx, replyToPostID, value.ParentTypePost, text, createdBy)
+	reply, err := s.CreatePost(ctx, replyToPostID, value.ParentTypePost, cleanText, createdBy)
 	if err != nil {
 		return nil, err
 	}
