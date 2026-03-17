@@ -11,6 +11,7 @@ type RecommendationService interface {
 	Send(ctx context.Context, initiatorID, receiverID, animeID int) error
 	GetUserRecommendations(ctx context.Context, userID, pageNumber, pageSize int) ([]*domain.Recommendation, utils.Pagination, error)
 	DismissRecommendation(ctx context.Context, receiverID, anime int) error
+	HasBeenRecommended(ctx context.Context, receiverID, animeID int) (bool, error)
 }
 
 type RecommendationRepository interface {

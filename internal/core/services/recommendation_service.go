@@ -94,3 +94,7 @@ func (s *RecommendationService) GetUserRecommendations(ctx context.Context, user
 func (s *RecommendationService) DismissRecommendation(ctx context.Context, receiverID, anime int) error {
 	return s.recommendationRepo.DismissRecommendation(ctx, receiverID, anime)
 }
+
+func (s *RecommendationService) HasBeenRecommended(ctx context.Context, receiverID, animeID int) (bool, error) {
+	return s.recommendationRepo.HasBeenRecommended(ctx, receiverID, animeID)
+}
