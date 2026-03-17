@@ -153,9 +153,10 @@ func (s *AnimeListService) UpdateRating(ctx context.Context, userID int, animeID
 	}
 
 	if !hadRating {
-		err = s.ratingCacheService.InsertOrUpdateRating(userID, int(animeID), story, visuals, soundtrack)
+		err = s.ratingCacheService.InsertOrUpdateRating(ctx, userID, int(animeID), story, visuals, soundtrack)
 	} else {
 		err = s.ratingCacheService.UpdateExistingRating(
+			ctx,
 			userID, int(animeID),
 			oldRating.Story, oldRating.Visuals, oldRating.Soundtrack,
 			story, visuals, soundtrack,
@@ -178,6 +179,7 @@ func (s *AnimeListService) RemoveRating(ctx context.Context, userID int, animeID
 	if item.Rating != nil {
 		readeableRating := domain.Uint16ToRating(*item.Rating)
 		s.ratingCacheService.RemoveRating(
+			ctx,
 			userID,
 			int(animeID),
 			readeableRating.Story,

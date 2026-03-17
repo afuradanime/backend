@@ -23,7 +23,7 @@ func (c *RatingCacheController) GetRatingCache(ctx fuego.ContextNoBody) (*domain
 		return nil, fuego.BadRequestError{Detail: "Invalid anime ID: " + err.Error()}
 	}
 
-	cache, err := c.ratingCacheService.GetRatingCache(animeId)
+	cache, err := c.ratingCacheService.GetRatingCache(ctx, animeId)
 	if err != nil {
 		return nil, fuego.InternalServerError{Detail: "Failed to fetch rating cache: " + err.Error()}
 	}

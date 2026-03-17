@@ -8,10 +8,10 @@ import (
 )
 
 type RatingCacheService interface {
-	InsertOrUpdateRating(userID int, animeID int, story, visuals, soundtrack uint8) error
-	UpdateExistingRating(userID int, animeID int, oldStory, oldVisuals, oldSoundtrack, newStory, newVisuals, newSoundtrack uint8) error
-	RemoveRating(userID int, animeID int, oldStory, oldVisuals, oldSoundtrack uint8) error
-	GetRatingCache(animeID int) (*domain.RatingCache, error)
+	InsertOrUpdateRating(ctx context.Context, userID int, animeID int, story, visuals, soundtrack uint8) error
+	UpdateExistingRating(ctx context.Context, userID int, animeID int, oldStory, oldVisuals, oldSoundtrack, newStory, newVisuals, newSoundtrack uint8) error
+	RemoveRating(ctx context.Context, userID int, animeID int, oldStory, oldVisuals, oldSoundtrack uint8) error
+	GetRatingCache(ctx context.Context, animeID int) (*domain.RatingCache, error)
 
 	GetTopAnime(ctx context.Context, pageNumber, pageSize int) ([]*domain.RatingCache, utils.Pagination, error)
 	GetPopularAnime(ctx context.Context, pageNumber, pageSize int) ([]*domain.RatingCache, utils.Pagination, error)
