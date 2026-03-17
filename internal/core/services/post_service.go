@@ -15,6 +15,7 @@ type PostService struct {
 	postRepo          interfaces.PostRepository
 	userRepo          interfaces.UserRepository
 	friendshipService interfaces.FriendshipService
+	animeService      interfaces.AnimeService
 }
 
 func NewPostService(postRepo interfaces.PostRepository, userRepo interfaces.UserRepository, friendshipService interfaces.FriendshipService) *PostService {
@@ -58,7 +59,7 @@ func (s *PostService) CreatePost(ctx context.Context, parentId string, parentTyp
 		if err != nil {
 			return nil, errors.New("Invalid parent id: " + err.Error())
 		}
-		// TODO: we could also validate that the user of the profile exists but meh
+
 		if userOfProfileId != poster.ID {
 			friendship, err := s.friendshipService.FetchFriendshipStatus(ctx, poster.ID, userOfProfileId)
 			if err != nil {
@@ -70,6 +71,11 @@ func (s *PostService) CreatePost(ctx context.Context, parentId string, parentTyp
 					Receiver:  strconv.Itoa(friendship.Receiver),
 				}
 			}
+		}
+	} else if parentType == value.ParentTypeThread {
+		_, err := s.animeService.FetchAnimeByID(uint32(parentType))
+		if err != nil {
+			return nil, errors.New("Invalid parent id: " + err.Error())
 		}
 	}
 

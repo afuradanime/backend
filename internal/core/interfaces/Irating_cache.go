@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/afuradanime/backend/internal/core/domain"
+	"github.com/afuradanime/backend/internal/core/utils"
 )
 
 type RatingCacheService interface {
@@ -11,10 +12,16 @@ type RatingCacheService interface {
 	UpdateExistingRating(userID int, animeID int, oldStory, oldVisuals, oldSoundtrack, newStory, newVisuals, newSoundtrack uint8) error
 	RemoveRating(userID int, animeID int, oldStory, oldVisuals, oldSoundtrack uint8) error
 	GetRatingCache(animeID int) (*domain.RatingCache, error)
+
+	GetTopAnime(ctx context.Context, pageNumber, pageSize int) ([]*domain.RatingCache, utils.Pagination, error)
+	GetPopularAnime(ctx context.Context, pageNumber, pageSize int) ([]*domain.RatingCache, utils.Pagination, error)
 }
 
 type RatingCacheRepository interface {
 	CreateRatingCache(ctx context.Context, cache *domain.RatingCache) error
 	UpdateRatingCache(ctx context.Context, cache *domain.RatingCache) error
 	GetRatingCache(ctx context.Context, animeID int) (*domain.RatingCache, error)
+
+	GetTopAnime(ctx context.Context, pageNumber, pageSize int) ([]*domain.RatingCache, utils.Pagination, error)
+	GetPopularAnime(ctx context.Context, pageNumber, pageSize int) ([]*domain.RatingCache, utils.Pagination, error)
 }

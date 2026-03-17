@@ -5,8 +5,10 @@ import (
 	"errors"
 
 	"github.com/afuradanime/backend/internal/core/domain"
+	"github.com/afuradanime/backend/internal/core/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type RatingCacheRepository struct {
@@ -50,4 +52,68 @@ func (r *RatingCacheRepository) GetRatingCache(ctx context.Context, animeID int)
 	}
 
 	return &cache, nil
+}
+
+func (r *RatingCacheRepository) GetTopAnime(ctx context.Context, pageNumber, pageSize int) ([]*domain.RatingCache, utils.Pagination, error) {
+
+	skip := (pageNumber - 1) * pageSize
+
+	total, err := r.collection.CountDocuments(ctx, bson.M{})
+	if err != nil {
+		return nil, utils.Pagination{}, err
+	}
+
+	cursor, err := r.collection.Find(ctx, bson.M{}, options.Find().
+		SetSkip(int64(skip)).
+		SetLimit(int64(pageSize)).
+		SetSort(bson.M{"overall": -1}),
+	)
+	if err != nil {
+		return nil, utils.Pagination{}, err
+	}
+	defer cursor.Close(ctx)
+
+	var ratings []*domain.RatingCache
+	if err := cursor.All(ctx, &ratings); err != nil {
+		return nil, utils.Pagination{}, err
+	}
+
+	totalPages := (int(total) + pageSize - 1) / pageSize
+	return ratings, utils.Pagination{
+		PageNumber: pageNumber,
+		PageSize:   pageSize,
+		TotalPages: totalPages,
+	}, nil
+}
+
+func (r *RatingCacheRepository) GetPopularAnime(ctx context.Context, pageNumber, pageSize int) ([]*domain.RatingCache, utils.Pagination, error) {
+
+	skip := (pageNumber - 1) * pageSize
+
+	total, err := r.collection.CountDocuments(ctx, bson.M{})
+	if err != nil {
+		return nil, utils.Pagination{}, err
+	}
+
+	cursor, err := r.collection.Find(ctx, bson.M{}, options.Find().
+		SetSkip(int64(skip)).
+		SetLimit(int64(pageSize)).
+		SetSort(bson.M{"user_counter": -1}),
+	)
+	if err != nil {
+		return nil, utils.Pagination{}, err
+	}
+	defer cursor.Close(ctx)
+
+	var ratings []*domain.RatingCache
+	if err := cursor.All(ctx, &ratings); err != nil {
+		return nil, utils.Pagination{}, err
+	}
+
+	totalPages := (int(total) + pageSize - 1) / pageSize
+	return ratings, utils.Pagination{
+		PageNumber: pageNumber,
+		PageSize:   pageSize,
+		TotalPages: totalPages,
+	}, nil
 }

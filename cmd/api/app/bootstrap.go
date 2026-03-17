@@ -48,6 +48,10 @@ func Bootstrap(m *mongo.Database) {
 	animeListService := services.NewAnimeListService(animeListRepo, repositories.NewAnimeRepository(), ratingCacheService)
 	BootstrapAnimeList(context.Background(), animeListRepo, krayID, animeListService)
 
+	// Bootstrap groups
+	groupRepo := repositories.NewGroupRepository(m)
+	BootstrapGroups(context.Background(), groupRepo)
+
 	// Database Indices
 	BootstrapIndices(context.Background(), m)
 }
@@ -116,6 +120,8 @@ func BootstrapUsers(ctx context.Context, userRepo *repositories.UserRepository) 
 	userTest.UpdateAllowsRecommendations(false)
 
 	userTest.RewardBadge(value.UserBadgeBrand)
+	userTest.AddRole(value.UserRoleModerator)
+	userTest.AddRole(value.UserRoleAdmin)
 
 	// Create user and get auto-generated ID
 	_, err = userRepo.CreateUser(ctx, userTest)
@@ -166,6 +172,21 @@ func BootstrapReports(ctx context.Context, reportRepo *repositories.UserReportRe
 	}
 }
 
+func BootstrapGroups(ctx context.Context, groupRepo *repositories.GroupRepository) {
+
+	group, _ := domain.NewGroup("Geral", "Grupo geral", "Regra número 1\n- Larp de fate é OBRIGATORIO", "http://127.0.0.1:5173/public/favicon.ico")
+	err := groupRepo.CreateGroup(ctx, group)
+	if err != nil {
+		panic(err)
+	}
+
+	group2, _ := domain.NewGroup("Off-topic", "Conversas sobre outros tópicos", "Proibido mencionar isep", "http://127.0.0.1:5173/public/favicon.ico")
+	err = groupRepo.CreateGroup(ctx, group2)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func BootstrapPostConversation(ctx context.Context, postRepo *repositories.PostRepository, krayID int, taikoID int, testID int) {
 
 	post1 := domain.NewPost(strconv.Itoa(krayID), value.ParentTypeUser, "Bem vindos ao meu perfil ⭐!", krayID)
@@ -206,14 +227,6 @@ func BootstrapPostConversation(ctx context.Context, postRepo *repositories.PostR
 	}
 }
 
-func BootstrapIndices(ctx context.Context, m *mongo.Database) {
-
-	m.Collection("recommendations").Indexes().CreateMany(ctx, []mongo.IndexModel{
-		{Keys: bson.D{{Key: "receiver", Value: 1}, {Key: "seen", Value: 1}}},
-		{Keys: bson.D{{Key: "initiator", Value: 1}, {Key: "receiver", Value: 1}, {Key: "anime", Value: 1}}},
-	})
-}
-
 func BootstrapAnimeList(ctx context.Context, animeListRepo *repositories.AnimeListRepository, userID int, animeListServ interfaces.AnimeListService) {
 	testList := domain.NewPersonalAnimeList(userID)
 
@@ -223,7 +236,7 @@ func BootstrapAnimeList(ctx context.Context, animeListRepo *repositories.AnimeLi
 	testEntry.AddRating(8, 9, 7)
 	testList.AddListItem(*testEntry)
 
-	SuperFunnyListFiller3000(userID, 100, animeListServ)
+	// SuperFunnyListFiller3000(userID, 100, animeListServ)
 
 	anotherTestList := domain.NewPersonalAnimeList(userID + 1)
 
@@ -233,7 +246,7 @@ func BootstrapAnimeList(ctx context.Context, animeListRepo *repositories.AnimeLi
 	anotherTestEntry.AddRating(8, 9, 7)
 	anotherTestList.AddListItem(*anotherTestEntry)
 
-	SuperFunnyListFiller3000(userID+1, 100, animeListServ)
+	// SuperFunnyListFiller3000(userID+1, 100, animeListServ)
 }
 
 func SuperFunnyListFiller3000(userID, limit int, animeListService interfaces.AnimeListService) {
@@ -242,4 +255,12 @@ func SuperFunnyListFiller3000(userID, limit int, animeListService interfaces.Ani
 		animeListService.UpdateRating(context.Background(), userID, uint32(i), uint8((i%10)+1), uint8((i%10)+1), uint8((i%10)+1))
 		animeListService.UpdateProgress(context.Background(), userID, uint32(i), uint32(i%12))
 	}
+}
+
+func BootstrapIndices(ctx context.Context, m *mongo.Database) {
+
+	m.Collection("recommendations").Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "receiver", Value: 1}, {Key: "seen", Value: 1}}},
+		{Keys: bson.D{{Key: "initiator", Value: 1}, {Key: "receiver", Value: 1}, {Key: "anime", Value: 1}}},
+	})
 }

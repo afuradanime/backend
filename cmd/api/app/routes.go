@@ -30,6 +30,7 @@ func (a *Application) InitRoutes(s *fuego.Server) {
 	a.RegisterTranslationsModule(s)
 	a.RegisterAnimeListModule(s)
 	a.RegisterRatingCacheModule(s)
+	a.RegisterGroupModule(s)
 
 	// Group for globally protected routes
 	protected := fuego.Group(s, "/")
@@ -235,4 +236,26 @@ func (a *Application) RegisterRatingCacheModule(s *fuego.Server) {
 
 	g := fuego.Group(s, "/ratingcache")
 	fuego.Get(g, "/{animeId}", ratingCacheController.GetRatingCache)
+}
+
+func (a *Application) RegisterGroupModule(s *fuego.Server) {
+	groupRepo := repositories.NewGroupRepository(a.Mongo)
+	userRepo := repositories.NewUserRepository(a.Mongo)
+	groupService := services.NewGroupService(groupRepo, userRepo)
+	groupController := controllers.NewGroupController(groupService)
+
+	g := fuego.Group(s, "/groups")
+
+	// Public
+	fuego.Get(g, "/{id}", groupController.GetGroupByID)
+	fuego.Get(g, "/", groupController.GetGroups)
+
+	authGroup := fuego.Group(g, "/")
+
+	// Authenticated
+	// Moderator actions (group-level, checked in service)
+	fuego.Use(authGroup, middlewares.JWTMiddleware(a.JWTConfig))
+	fuego.Put(authGroup, "/{id}", groupController.UpdateGroup)
+	fuego.Put(authGroup, "/{id}/moderators", groupController.AddGroupModerator)
+	fuego.Delete(authGroup, "/{id}/moderators", groupController.RemoveGroupModerator)
 }

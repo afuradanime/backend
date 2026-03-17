@@ -30,7 +30,7 @@ type UserAnimeList struct {
 * Episode count is also a uint16 for the same reason no shot we ever get past 65k episodes in an anime
 *
 * After making AnimeID and EpisodesWatched uint16 instead of uint32: 12MBs -> 10MBs
-* We are also wasting space by storing 4 ratings as shorts (4 bytes) as they are natural numbers that go from 0 to 10, so that's only 4 bits per rating,
+* We are also wasting space by storing 4 ratings as chars (4 bytes) as they are natural numbers that go from 0 to 10, so that's only 4 bits per rating,
 * we have 4 ratings, so 16 bits total, we can pack them into a single uint16 and cut memory usage by half, that also removes struct overhead prob
 *
 * After packing ratings into a single uint16: 10MBs -> 7MBs
