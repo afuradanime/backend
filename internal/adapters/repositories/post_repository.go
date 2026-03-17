@@ -64,8 +64,25 @@ func (r *PostRepository) CreatePost(ctx context.Context, post *domain.Post) (*do
 }
 
 func (r *PostRepository) UpdatePost(ctx context.Context, post *domain.Post) error {
-	// Used for updates and soft deletes (deletes that keep the post but mark it as deleted by nullifying the text and createdBy fields)
-	_, err := r.collection.UpdateOne(ctx, bson.M{"_id": post.ID}, bson.M{"$set": post})
+	update := bson.M{
+		"$set": bson.M{
+			"text":       post.Text,
+			"created_by": post.CreatedBy,
+		},
+		"$unset": bson.M{},
+	}
+
+	// Support soft deletes
+	if post.Text == nil {
+		update["$unset"].(bson.M)["text"] = ""
+		delete(update["$set"].(bson.M), "text")
+	}
+	if post.CreatedBy == nil {
+		update["$unset"].(bson.M)["created_by"] = ""
+		delete(update["$set"].(bson.M), "created_by")
+	}
+
+	_, err := r.collection.UpdateOne(ctx, bson.M{"_id": post.ID}, update)
 	return err
 }
 

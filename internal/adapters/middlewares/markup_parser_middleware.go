@@ -40,7 +40,7 @@ func ParsePost(
 	}
 	for _, a := range animeIds {
 		anime, err := animeRepo.FetchAnimeByID(uint32(a))
-		if err != nil || anime == nil { // <-- guard anime
+		if err != nil || anime == nil {
 			continue
 		}
 		replaced := strings.ReplaceAll(
