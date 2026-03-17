@@ -214,7 +214,14 @@ func (a *Application) RegisterAnimeListModule(s *fuego.Server) {
 	ratingCacheRepo := repositories.NewRatingCacheRepository(a.Mongo)
 	ratingCacheService := services.NewRatingCacheService(*ratingCacheRepo)
 	listService := services.NewAnimeListService(listRepo, animeRepo, ratingCacheService)
-	listController := controllers.NewAnimeListController(listService)
+
+	// Build recommendation service for dismissal on add
+	userRepo := repositories.NewUserRepository(a.Mongo)
+	friendshipSvc := services.NewFriendshipService(userRepo, repositories.NewFriendshipRepository(a.Mongo))
+	recommendationRepo := repositories.NewRecommendationRepository(a.Mongo)
+	recommendationSvc := services.NewRecommendationService(recommendationRepo, userRepo, friendshipSvc, listService)
+
+	listController := controllers.NewAnimeListController(listService, recommendationSvc)
 
 	g := fuego.Group(s, "/animelist")
 	fuego.Get(g, "/{userId}", listController.GetUserList)

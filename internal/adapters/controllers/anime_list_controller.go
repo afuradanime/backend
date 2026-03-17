@@ -13,11 +13,12 @@ import (
 )
 
 type AnimeListController struct {
-	animeListService interfaces.AnimeListService
+	animeListService      interfaces.AnimeListService
+	recommendationService interfaces.RecommendationService
 }
 
-func NewAnimeListController(s interfaces.AnimeListService) *AnimeListController {
-	return &AnimeListController{animeListService: s}
+func NewAnimeListController(s interfaces.AnimeListService, recommendationService interfaces.RecommendationService) *AnimeListController {
+	return &AnimeListController{animeListService: s, recommendationService: recommendationService}
 }
 
 type UserAnimeListResponse struct {
@@ -85,6 +86,12 @@ func (c *AnimeListController) AddAnime(ctx fuego.ContextWithBody[AddAnimeBody]) 
 		}
 
 		return AddAnimeResponse{}, fuego.InternalServerError{Detail: err.Error()}
+	}
+
+	// Dismiss recommendation if present
+	// We should not do this here, but there was a nasty circular import in the service
+	if has, err := c.recommendationService.HasBeenRecommended(ctx.Context(), userID, int(animeID)); err == nil && has {
+		c.recommendationService.DismissRecommendation(ctx.Context(), userID, int(animeID))
 	}
 
 	return AddAnimeResponse{Data: dto}, nil

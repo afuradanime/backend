@@ -15,25 +15,18 @@ import (
 )
 
 type AnimeListService struct {
-	listRepo              interfaces.AnimeListRepository
-	animeRepo             interfaces.AnimeRepository
-	ratingCacheService    interfaces.RatingCacheService
-	recommendationService interfaces.RecommendationService
-	mapper                *mappers.AnimeListMapper
+	listRepo           interfaces.AnimeListRepository
+	animeRepo          interfaces.AnimeRepository
+	ratingCacheService interfaces.RatingCacheService
+	mapper             *mappers.AnimeListMapper
 }
 
-func NewAnimeListService(
-	listRepo interfaces.AnimeListRepository,
-	animeRepo interfaces.AnimeRepository,
-	ratingCacheService interfaces.RatingCacheService,
-	recommendationService interfaces.RecommendationService,
-) *AnimeListService {
+func NewAnimeListService(listRepo interfaces.AnimeListRepository, animeRepo interfaces.AnimeRepository, ratingCacheService interfaces.RatingCacheService) *AnimeListService {
 	return &AnimeListService{
-		listRepo:              listRepo,
-		animeRepo:             animeRepo,
-		ratingCacheService:    ratingCacheService,
-		recommendationService: recommendationService,
-		mapper:                mappers.NewAnimeListMapper(),
+		listRepo:           listRepo,
+		animeRepo:          animeRepo,
+		ratingCacheService: ratingCacheService,
+		mapper:             mappers.NewAnimeListMapper(),
 	}
 }
 
@@ -74,13 +67,6 @@ func (s *AnimeListService) AddAnimeToList(ctx context.Context, userID int, anime
 
 	if err := s.listRepo.SaveUserList(ctx, list); err != nil {
 		return nil, err
-	}
-
-	// Remove from recommendation stack if present
-	if has, err := s.recommendationService.HasBeenRecommended(ctx, userID, int(animeID)); err == nil && has {
-		if err := s.recommendationService.DismissRecommendation(ctx, userID, int(animeID)); err != nil {
-			return nil, err
-		}
 	}
 
 	return s.mapper.ToDto(newItem, anime), nil
