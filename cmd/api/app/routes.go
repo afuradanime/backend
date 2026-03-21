@@ -4,6 +4,7 @@ import (
 	"github.com/afuradanime/backend/internal/adapters/controllers"
 	"github.com/afuradanime/backend/internal/adapters/middlewares"
 	"github.com/afuradanime/backend/internal/adapters/repositories"
+	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/domain/value"
 	"github.com/afuradanime/backend/internal/core/services"
 	"github.com/go-chi/chi/v5/middleware"
@@ -14,12 +15,16 @@ func (a *Application) InitRoutes(s *fuego.Server) {
 	// Global rate limiter
 	globalLimiter := &middlewares.IPRateLimiter{Rps: 10, Burst: 30}
 
+	// user activity tracker
+	a.ActivityTracker = domain.NewActivityTracker()
+
 	// Fuego uses package level Use function
 	fuego.Use(s,
 		middleware.Logger,
 		middleware.Recoverer,
 		// middlewares.CORSMiddleware,
 		globalLimiter.Middleware,
+		middlewares.ActivityMiddleware(a.JWTConfig, a.ActivityTracker),
 	)
 
 	// Register Modules
@@ -31,10 +36,11 @@ func (a *Application) InitRoutes(s *fuego.Server) {
 	a.RegisterAnimeListModule(s)
 	a.RegisterRatingCacheModule(s)
 	a.RegisterGroupModule(s)
+	a.RegisterActivityModule(s)
 
 	// Group for globally protected routes
 	protected := fuego.Group(s, "/")
-	fuego.Use(protected, middlewares.JWTMiddleware(a.JWTConfig))
+	fuego.Use(protected, middlewares.JWTMiddleware(a.JWTConfig, a.ActivityTracker))
 
 	a.RegisterReportsModule(protected)
 	a.RegisterPostModule(protected)
@@ -56,14 +62,14 @@ func (a *Application) RegisterTranslationsModule(s *fuego.Server) {
 
 	// Authenticated
 	userGroup := fuego.Group(g, "/")
-	fuego.Use(userGroup, middlewares.JWTMiddleware(a.JWTConfig))
+	fuego.Use(userGroup, middlewares.JWTMiddleware(a.JWTConfig, a.ActivityTracker))
 	fuego.Post(userGroup, "/anime/{animeID}", translationController.SubmitTranslation)
 
 	// Moderator only
 	modGroup := fuego.Group(g, "/")
 	fuego.Use(
 		modGroup,
-		middlewares.JWTMiddleware(a.JWTConfig),
+		middlewares.JWTMiddleware(a.JWTConfig, a.ActivityTracker),
 		middlewares.RequireRoleMiddleware(value.UserRoleModerator))
 	fuego.Put(modGroup, "/{id}/accept", translationController.AcceptTranslation)
 	fuego.Put(modGroup, "/{id}/reject", translationController.RejectTranslation)
@@ -83,7 +89,7 @@ func (a *Application) RegisterUserModule(s *fuego.Server) {
 
 	// Authenticated
 	authGroup := fuego.Group(g, "/")
-	fuego.Use(authGroup, middlewares.JWTMiddleware(a.JWTConfig))
+	fuego.Use(authGroup, middlewares.JWTMiddleware(a.JWTConfig, a.ActivityTracker))
 	fuego.Put(authGroup, "/", userController.UpdateUserInfo)
 
 	// Moderator
@@ -137,7 +143,7 @@ func (a *Application) RegisterFriendsModule(s *fuego.Server) {
 	fuego.Get(g, "/{userID}", friendshipController.ListFriends)
 
 	authGroup := fuego.Group(g, "/")
-	fuego.Use(authGroup, middlewares.JWTMiddleware(a.JWTConfig))
+	fuego.Use(authGroup, middlewares.JWTMiddleware(a.JWTConfig, a.ActivityTracker))
 	fuego.Put(authGroup, "/send/{receiver}", friendshipController.SendFriendRequest)
 	fuego.Put(authGroup, "/accept/{initiator}", friendshipController.AcceptFriendRequest)
 	fuego.Put(authGroup, "/decline/{initiator}", friendshipController.DeclineFriendRequest)
@@ -227,7 +233,7 @@ func (a *Application) RegisterAnimeListModule(s *fuego.Server) {
 	fuego.Get(g, "/{userId}", listController.GetUserList)
 
 	authGroup := fuego.Group(g, "/")
-	fuego.Use(authGroup, middlewares.JWTMiddleware(a.JWTConfig))
+	fuego.Use(authGroup, middlewares.JWTMiddleware(a.JWTConfig, a.ActivityTracker))
 	fuego.Post(authGroup, "/{userId}/{animeId}", listController.AddAnime)
 	fuego.Patch(authGroup, "/{userId}/progress/{animeId}", listController.UpdateProgress)
 	fuego.Patch(authGroup, "/{userId}/status/{animeId}", listController.UpdateStatus)
@@ -261,8 +267,16 @@ func (a *Application) RegisterGroupModule(s *fuego.Server) {
 
 	// Authenticated
 	// Moderator actions (group-level, checked in service)
-	fuego.Use(authGroup, middlewares.JWTMiddleware(a.JWTConfig))
+	fuego.Use(authGroup, middlewares.JWTMiddleware(a.JWTConfig, a.ActivityTracker))
 	fuego.Put(authGroup, "/{id}", groupController.UpdateGroup)
 	fuego.Put(authGroup, "/{id}/moderators", groupController.AddGroupModerator)
 	fuego.Delete(authGroup, "/{id}/moderators", groupController.RemoveGroupModerator)
+}
+
+func (a *Application) RegisterActivityModule(s *fuego.Server) {
+	controller := controllers.NewActivityController(a.ActivityTracker)
+
+	g := fuego.Group(s, "/activity")
+	fuego.Get(g, "/user/{userID}", controller.IsUserOnline)
+	fuego.Get(g, "/stats", controller.GetActivityStats)
 }

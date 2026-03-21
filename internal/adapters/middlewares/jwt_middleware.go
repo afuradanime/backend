@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/afuradanime/backend/config"
+	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/domain/value"
 	"github.com/afuradanime/backend/internal/core/utils"
 	"github.com/golang-jwt/jwt/v5"
@@ -42,7 +43,7 @@ func IsLoggedUserOfRole(ctx context.Context, role value.UserRole) bool {
 	return slices.Contains(roles, role)
 }
 
-func JWTMiddleware(cfg *config.JWTConfig) func(http.Handler) http.Handler {
+func JWTMiddleware(cfg *config.JWTConfig, tracker *domain.ActivityTracker) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -93,6 +94,7 @@ func JWTMiddleware(cfg *config.JWTConfig) func(http.Handler) http.Handler {
 				ctx = context.WithValue(ctx, UserRolesKey, roles)
 			}
 
+			tracker.RecordActivity(int(userID))
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
