@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/afuradanime/backend/internal/core/domain"
+	"github.com/afuradanime/backend/internal/core/domain/value"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -29,15 +30,17 @@ func (r *PostRepository) GetPostById(ctx context.Context, postID string) (*domai
 	return &post, nil
 }
 
-func (r *PostRepository) GetPostReplies(ctx context.Context, parentID string) ([]*domain.Post, error) {
-	// Return replies ordered by creation date (newest first)
+func (r *PostRepository) GetPostReplies(ctx context.Context, parentID string, parentType value.PostParentType) ([]*domain.Post, error) {
 	findOpts := options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}})
-	cursor, err := r.collection.Find(ctx, bson.M{"parent_id": parentID}, findOpts)
-	defer cursor.Close(ctx)
+	cursor, err := r.collection.Find(ctx, bson.M{
+		"parent_id":   parentID,
+		"parent_type": parentType,
+	}, findOpts)
 
 	if err != nil {
 		return nil, errors.New("failed to fetch post replies: " + err.Error())
 	}
+	defer cursor.Close(ctx)
 
 	var replies []*domain.Post
 	for cursor.Next(ctx) {

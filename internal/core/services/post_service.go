@@ -51,9 +51,9 @@ func (s *PostService) GetPostById(ctx context.Context, postId string) (*domain.P
 	return post, err
 }
 
-func (s *PostService) GetPostReplies(ctx context.Context, parentID string) ([]*domain.Post, error) {
+func (s *PostService) GetPostReplies(ctx context.Context, parentID string, parentType value.PostParentType) ([]*domain.Post, error) {
+	posts, err := s.postRepo.GetPostReplies(ctx, parentID, parentType)
 
-	posts, err := s.postRepo.GetPostReplies(ctx, parentID)
 	if err != nil {
 		return nil, err
 	}
