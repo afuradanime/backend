@@ -113,10 +113,23 @@ func (s *PostService) CreatePost(ctx context.Context, parentId string, parentTyp
 			return nil, errors.New("Invalid parent id: " + err.Error())
 		}
 	} else if parentType == value.ParentTypeGroup {
-		_, err := s.groupService.GetGroup(ctx, parentId)
+		groupId, err := strconv.Atoi(parentId)
 		if err != nil {
 			return nil, errors.New("Invalid parent id: " + err.Error())
 		}
+
+		group, err := s.groupService.GetGroup(ctx, groupId)
+		if err != nil {
+			return nil, errors.New("Invalid parent id: " + err.Error())
+		}
+
+		// Check if group private
+		if !group.Public {
+			if !group.IsModerator(posterId) && !poster.HasRole(value.UserRoleAdmin) {
+				return nil, domain_errors.UnauthorizedError{}
+			}
+		}
+
 	} else {
 		return nil, errors.New("Unsupported thread context")
 	}

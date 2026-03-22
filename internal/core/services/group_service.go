@@ -22,7 +22,7 @@ func NewGroupService(repo interfaces.GroupRepository, userRepository interfaces.
 	}
 }
 
-func (s *GroupService) GetGroup(ctx context.Context, groupId string) (*domain.Group, error) {
+func (s *GroupService) GetGroup(ctx context.Context, groupId int) (*domain.Group, error) {
 	return s.groupRepository.GetGroup(ctx, groupId)
 }
 
@@ -32,7 +32,7 @@ func (s *GroupService) GetGroups(ctx context.Context, pageNumber, pageSize int) 
 
 func (s *GroupService) UpdateGroup(
 	ctx context.Context,
-	groupId string,
+	groupId int,
 	name, description, rules, icon string,
 	user int,
 ) error {
@@ -75,7 +75,7 @@ func (s *GroupService) UpdateGroup(
 
 func (s *GroupService) AddGroupModerator(
 	ctx context.Context,
-	groupId string,
+	groupId int,
 	moderator int,
 	user int,
 ) error {
@@ -90,7 +90,7 @@ func (s *GroupService) AddGroupModerator(
 		return err
 	}
 
-	if !group.IsModerator(user) || creator.HasRole(value.UserRoleAdmin) {
+	if !group.IsModerator(user) && !creator.HasRole(value.UserRoleAdmin) {
 		return domain_errors.UnauthorizedError{}
 	}
 
@@ -103,7 +103,7 @@ func (s *GroupService) AddGroupModerator(
 
 func (s *GroupService) RemoveGroupModerator(
 	ctx context.Context,
-	groupId string,
+	groupId int,
 	moderator int,
 	user int,
 ) error {
@@ -118,7 +118,7 @@ func (s *GroupService) RemoveGroupModerator(
 		return err
 	}
 
-	if !group.IsModerator(user) || creator.HasRole(value.UserRoleAdmin) {
+	if !group.IsModerator(user) && !creator.HasRole(value.UserRoleAdmin) {
 		return domain_errors.UnauthorizedError{}
 	}
 

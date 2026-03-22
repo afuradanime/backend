@@ -5,15 +5,15 @@ import (
 
 	"github.com/afuradanime/backend/internal/core/domain/value"
 	domain_errors "github.com/afuradanime/backend/internal/core/errors"
-	"github.com/afuradanime/backend/internal/core/utils"
 )
 
 type Group struct {
-	ID          string        `json:"ID" bson:"_id"`
+	ID          int           `json:"ID" bson:"_id"`
 	Name        value.TinyStr `json:"Name" bson:"name"`
 	Icon        value.URL     `json:"Icon" bson:"icon"`
 	Description value.LongStr `json:"Description" bson:"description"`
 	Rules       value.LongStr `json:"Rules" bson:"rules"`
+	Public      bool          `json:"Public" bson:"public"`
 
 	Moderators []int `json:"Mods" bson:"mods"`
 
@@ -42,12 +42,12 @@ func NewGroup(name, description, rules, icon string) (*Group, error) {
 	}
 
 	return &Group{
-		ID:          utils.GenerateRandomID(),
 		Name:        *nameVal,
 		Icon:        *iconVal,
 		Description: *descVal,
 		Rules:       *rulesVal,
 		Moderators:  make([]int, 0),
+		Public:      true,
 		CreatedAt:   time.Now(),
 	}, nil
 }
@@ -140,4 +140,8 @@ func (g *Group) IsModerator(userID int) bool {
 		}
 	}
 	return false
+}
+
+func (g *Group) MakePrivate() {
+	g.Public = false
 }

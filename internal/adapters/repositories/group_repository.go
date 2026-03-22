@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"time"
 
 	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/utils"
@@ -11,21 +12,45 @@ import (
 )
 
 type GroupRepository struct {
-	collection *mongo.Collection
+	collection        *mongo.Collection
+	counterCollection *mongo.Collection
 }
 
 func NewGroupRepository(db *mongo.Database) *GroupRepository {
 	return &GroupRepository{
-		collection: db.Collection("groups"),
+		collection:        db.Collection("groups"),
+		counterCollection: db.Collection("counters"),
 	}
 }
 
+func (r *GroupRepository) getNextSequence(ctx context.Context, name string) (int, error) {
+	filter := bson.M{"_id": name}
+	update := bson.M{"$inc": bson.M{"seq": 1}}
+	opts := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
+
+	var result Counter
+	err := r.counterCollection.FindOneAndUpdate(ctx, filter, update, opts).Decode(&result)
+	if err != nil {
+		return 0, err
+	}
+	return result.Seq, nil
+}
+
 func (r *GroupRepository) CreateGroup(ctx context.Context, group *domain.Group) error {
-	_, err := r.collection.InsertOne(ctx, group)
+	// Get next auto-incrementing ID
+	nextID, err := r.getNextSequence(ctx, "group_id")
+	if err != nil {
+		return err
+	}
+
+	group.ID = nextID
+	group.CreatedAt = time.Now()
+
+	_, err = r.collection.InsertOne(ctx, group)
 	return err
 }
 
-func (r *GroupRepository) GetGroup(ctx context.Context, groupId string) (*domain.Group, error) {
+func (r *GroupRepository) GetGroup(ctx context.Context, groupId int) (*domain.Group, error) {
 	var group domain.Group
 	err := r.collection.FindOne(ctx, bson.M{
 		"_id": groupId,
