@@ -174,19 +174,19 @@ func BootstrapReports(ctx context.Context, reportRepo *repositories.UserReportRe
 
 func BootstrapGroups(ctx context.Context, groupRepo *repositories.GroupRepository) {
 
-	general, _ := domain.NewGroup("Geral", "Grupo geral", "Regra número 1\n- Larp de fate é OBRIGATORIO", "http://127.0.0.1:5173/public/favicon.ico")
+	general, _ := domain.NewGroup("Geral", "Grupo geral", "Regra número 1\n- Larp de fate é OBRIGATORIO", "http://localhost:5173/public/favicon.ico")
 	err := groupRepo.CreateGroup(ctx, general)
 	if err != nil {
 		panic(err)
 	}
 
-	offtopic, _ := domain.NewGroup("Off-topic", "Conversas sobre outros tópicos", "Proibido mencionar isep", "http://127.0.0.1:5173/public/favicon.ico")
+	offtopic, _ := domain.NewGroup("Off-topic", "Conversas sobre outros tópicos", "Proibido mencionar isep", "http://localhost:5173/public/favicon.ico")
 	err = groupRepo.CreateGroup(ctx, offtopic)
 	if err != nil {
 		panic(err)
 	}
 
-	news, _ := domain.NewGroup("Notícias", "Canal principal de notícias do Afuradanime", "", "http://127.0.0.1:5173/public/favicon.ico")
+	news, _ := domain.NewGroup("Notícias", "Canal principal de notícias do Afuradanime", "N/A", "http://localhost:5173/public/favicon.ico")
 	news.MakePrivate()
 	news.AddModerator(0)
 	news.AddModerator(1)
@@ -196,19 +196,19 @@ func BootstrapGroups(ctx context.Context, groupRepo *repositories.GroupRepositor
 		panic(err)
 	}
 
-	group3, _ := domain.NewGroup("Recomendações", "Partilha o que tens visto e lido recentemente com o pessoal", "Partilha o que te faz feliz", "http://127.0.0.1:5173/public/favicon.ico")
+	group3, _ := domain.NewGroup("Recomendações", "Partilha o que tens visto e lido recentemente com o pessoal", "Partilha o que te faz feliz", "https://preview.redd.it/susie-deltarune-drinking-beer-and-eating-chips-while-v0-4544ptv31mle1.jpg?width=1080&crop=smart&auto=webp&s=0d5ae18a5c957e30532b7615d8857c3c64025e41")
 	err = groupRepo.CreateGroup(ctx, group3)
 	if err != nil {
 		panic(err)
 	}
 
-	group4, _ := domain.NewGroup("Arte", "Para todos os apreciadores do desenho e animação no de estilo anime/mangá", "Mostra e discute os trabalhos da comunidade", "http://127.0.0.1:5173/public/favicon.ico")
+	group4, _ := domain.NewGroup("Arte", "Para todos os apreciadores do desenho e animação no de estilo anime/mangá", "Mostra e discute os trabalhos da comunidade", "https://www.tomboweurope.com/fileadmin/Content/article/2205_Manga_Charakter/2205_Manga_Charakter_Step3.jpg")
 	err = groupRepo.CreateGroup(ctx, group4)
 	if err != nil {
 		panic(err)
 	}
 
-	group5, _ := domain.NewGroup("Eventos e meetups", "Partilha fotografias e discute sobre eventos de anime aos quais foste", "No grooming allowerd", "http://127.0.0.1:5173/public/favicon.ico")
+	group5, _ := domain.NewGroup("Eventos e meetups", "Partilha fotografias e discute sobre eventos de anime aos quais foste", "No grooming allowerd", "https://www.nit.pt/wp-content/uploads/2024/12/eafaab1865384ed3dbabc77717aa068d.jpg")
 	err = groupRepo.CreateGroup(ctx, group5)
 	if err != nil {
 		panic(err)

@@ -187,7 +187,8 @@ func (a *Application) RegisterPostModule(s *fuego.Server) {
 	postRepo := repositories.NewPostRepository(a.Mongo)
 	userRepo := repositories.NewUserRepository(a.Mongo)
 	friendshipSvc := services.NewFriendshipService(userRepo, repositories.NewFriendshipRepository(a.Mongo))
-	postService := services.NewPostService(postRepo, userRepo, friendshipSvc, services.NewAnimeService(repositories.NewAnimeRepository()))
+	groupSvc := services.NewGroupService(repositories.NewGroupRepository(a.Mongo), userRepo)
+	postService := services.NewPostService(postRepo, userRepo, friendshipSvc, services.NewAnimeService(repositories.NewAnimeRepository()), groupSvc)
 	postController := controllers.NewPostController(postService)
 
 	g := fuego.Group(s, "/posts")

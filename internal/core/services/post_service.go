@@ -26,12 +26,14 @@ func NewPostService(
 	userRepo interfaces.UserRepository,
 	friendshipService interfaces.FriendshipService,
 	animeService interfaces.AnimeService,
+	groupService interfaces.GroupService,
 ) *PostService {
 	return &PostService{
 		postRepo:          postRepo,
 		userRepo:          userRepo,
 		friendshipService: friendshipService,
 		animeService:      animeService,
+		groupService:      groupService,
 	}
 }
 
