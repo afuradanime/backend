@@ -85,7 +85,8 @@ func (s *PostService) CreatePost(ctx context.Context, parentId string, parentTyp
 	}
 
 	// Checkpoint 2 - Profile Context Blockage
-	if parentType == value.ParentTypeUser {
+	switch parentType {
+	case value.ParentTypeUser:
 		userOfProfileId, err := strconv.Atoi(parentId)
 		if err != nil {
 			return nil, errors.New("Invalid parent id: " + err.Error())
@@ -103,7 +104,7 @@ func (s *PostService) CreatePost(ctx context.Context, parentId string, parentTyp
 				}
 			}
 		}
-	} else if parentType == value.ParentTypeThread {
+	case value.ParentTypeThread:
 
 		animeId, err := strconv.Atoi(parentId)
 		if err != nil {
@@ -114,7 +115,7 @@ func (s *PostService) CreatePost(ctx context.Context, parentId string, parentTyp
 		if err != nil {
 			return nil, errors.New("Invalid parent id: " + err.Error())
 		}
-	} else if parentType == value.ParentTypeGroup {
+	case value.ParentTypeGroup:
 		groupId, err := strconv.Atoi(parentId)
 		if err != nil {
 			return nil, errors.New("Invalid parent id: " + err.Error())
@@ -131,8 +132,12 @@ func (s *PostService) CreatePost(ctx context.Context, parentId string, parentTyp
 				return nil, domain_errors.UnauthorizedError{}
 			}
 		}
-
-	} else {
+	case value.ParentTypePost:
+		_, err := s.postRepo.GetPostById(ctx, parentId)
+		if err != nil {
+			return nil, errors.New("Invalid parent post id: " + err.Error())
+		}
+	default:
 		return nil, errors.New("Unsupported thread context")
 	}
 
