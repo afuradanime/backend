@@ -264,7 +264,7 @@ func BootstrapAnimeList(ctx context.Context, animeListRepo *repositories.AnimeLi
 	testEntry.AddRating(8, 9, 7)
 	testList.AddListItem(*testEntry)
 
-	SuperFunnyListFiller3000(userID, 100, animeListServ)
+	// SuperFunnyListFiller3000(userID, 100, animeListServ)
 
 	anotherTestList := domain.NewPersonalAnimeList(userID + 1)
 
@@ -274,7 +274,7 @@ func BootstrapAnimeList(ctx context.Context, animeListRepo *repositories.AnimeLi
 	anotherTestEntry.AddRating(8, 9, 7)
 	anotherTestList.AddListItem(*anotherTestEntry)
 
-	SuperFunnyListFiller3000(userID+1, 100, animeListServ)
+	// SuperFunnyListFiller3000(userID+1, 100, animeListServ)
 }
 
 func SuperFunnyListFiller3000(userID, limit int, animeListService interfaces.AnimeListService) {

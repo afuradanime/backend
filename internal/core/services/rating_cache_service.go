@@ -67,9 +67,9 @@ func (s *RatingCacheService) GetRatingCache(ctx context.Context, animeID int) (*
 }
 
 func (s *RatingCacheService) GetTopAnime(ctx context.Context, pageNumber, pageSize int) ([]*domain.RatingCache, utils.Pagination, error) {
-	return s.GetTopAnime(ctx, pageNumber, pageSize)
+	return s.repo.GetTopAnime(ctx, pageNumber, pageSize)
 }
 
 func (s *RatingCacheService) GetPopularAnime(ctx context.Context, pageNumber, pageSize int) ([]*domain.RatingCache, utils.Pagination, error) {
-	return s.GetPopularAnime(ctx, pageNumber, pageSize)
+	return s.repo.GetPopularAnime(ctx, pageNumber, pageSize)
 }

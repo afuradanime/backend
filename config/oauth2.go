@@ -21,6 +21,7 @@ func LoadOauth2() *oauth2.Config {
 
 	if err := godotenv.Load(envFile); err != nil {
 		log.Println("Warning: no .env file found at", envFile)
+		panic("No .env file")
 	}
 
 	return &oauth2.Config{

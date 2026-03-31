@@ -188,7 +188,9 @@ func (a *Application) RegisterPostModule(s *fuego.Server) {
 	userRepo := repositories.NewUserRepository(a.Mongo)
 	friendshipSvc := services.NewFriendshipService(userRepo, repositories.NewFriendshipRepository(a.Mongo))
 	groupSvc := services.NewGroupService(repositories.NewGroupRepository(a.Mongo), userRepo)
-	postService := services.NewPostService(postRepo, userRepo, friendshipSvc, services.NewAnimeService(repositories.NewAnimeRepository()), groupSvc)
+	postService := services.NewPostService(postRepo, userRepo, friendshipSvc,
+		services.NewAnimeService(repositories.NewAnimeRepository()), groupSvc)
+
 	postController := controllers.NewPostController(postService)
 
 	g := fuego.Group(s, "/posts")
@@ -205,7 +207,9 @@ func (a *Application) RegisterRecommendationsModule(s *fuego.Server) {
 	friendshipSvc := services.NewFriendshipService(userRepo, repositories.NewFriendshipRepository(a.Mongo))
 	ratingCacheRepo := repositories.NewRatingCacheRepository(a.Mongo)
 	ratingCacheService := services.NewRatingCacheService(*ratingCacheRepo)
-	animeListSvc := services.NewAnimeListService(repositories.NewAnimeListRepository(a.Mongo), repositories.NewAnimeRepository(), ratingCacheService)
+	animeListSvc := services.NewAnimeListService(repositories.NewAnimeListRepository(a.Mongo),
+		repositories.NewAnimeRepository(), ratingCacheService)
+
 	service := services.NewRecommendationService(repo, userRepo, friendshipSvc, animeListSvc)
 	controller := controllers.NewRecommendationController(service)
 
@@ -246,10 +250,14 @@ func (a *Application) RegisterAnimeListModule(s *fuego.Server) {
 func (a *Application) RegisterRatingCacheModule(s *fuego.Server) {
 	ratingCacheRepo := repositories.NewRatingCacheRepository(a.Mongo)
 	ratingCacheService := services.NewRatingCacheService(*ratingCacheRepo)
-	ratingCacheController := controllers.NewRatingCacheController(ratingCacheService)
+	ratingCacheController := controllers.NewRatingCacheController(
+		ratingCacheService,
+		services.NewAnimeService(repositories.NewAnimeRepository()))
 
 	g := fuego.Group(s, "/ratingcache")
 	fuego.Get(g, "/{animeId}", ratingCacheController.GetRatingCache)
+	fuego.Get(g, "/top", ratingCacheController.GetTopAnime)
+	fuego.Get(g, "/popular", ratingCacheController.GetPopularAnime)
 }
 
 func (a *Application) RegisterGroupModule(s *fuego.Server) {
