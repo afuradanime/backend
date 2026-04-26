@@ -37,13 +37,13 @@ func (a *Application) InitRoutes(s *fuego.Server) {
 	a.RegisterRatingCacheModule(s)
 	a.RegisterGroupModule(s)
 	a.RegisterActivityModule(s)
+	a.RegisterPostModule(s)
 
 	// Group for globally protected routes
 	protected := fuego.Group(s, "/")
 	fuego.Use(protected, middlewares.JWTMiddleware(a.JWTConfig, a.ActivityTracker))
 
 	a.RegisterReportsModule(protected)
-	a.RegisterPostModule(protected)
 	a.RegisterRecommendationsModule(protected)
 }
 
@@ -192,13 +192,19 @@ func (a *Application) RegisterPostModule(s *fuego.Server) {
 		services.NewAnimeService(repositories.NewAnimeRepository()), groupSvc)
 
 	postController := controllers.NewPostController(postService)
-
+	
 	g := fuego.Group(s, "/posts")
+
+	// Public
 	fuego.Get(g, "/{post_id}", postController.GetPostById)
-	fuego.Get(g, "/{parent_id}/replies", postController.GetPostReplies)
-	fuego.Post(g, "/", postController.CreatePost)
-	fuego.Post(g, "/{post_id}/reply", postController.CreateReply)
-	fuego.Delete(g, "/{post_id}", postController.DeletePost)
+    fuego.Get(g, "/{parent_id}/replies", postController.GetPostReplies)
+
+	// Authenticated
+	authGroup := fuego.Group(g, "/")
+    fuego.Use(authGroup, middlewares.JWTMiddleware(a.JWTConfig, a.ActivityTracker))
+    fuego.Post(authGroup, "/", postController.CreatePost)
+    fuego.Post(authGroup, "/{post_id}/reply", postController.CreateReply)
+    fuego.Delete(authGroup, "/{post_id}", postController.DeletePost)
 }
 
 func (a *Application) RegisterRecommendationsModule(s *fuego.Server) {
