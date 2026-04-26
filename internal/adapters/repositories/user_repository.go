@@ -168,6 +168,7 @@ func (r *UserRepository) UpdateUser(ctx context.Context, user *domain.User) erro
 			"roles":                  user.Roles,
 			"badges":                 user.Badges,
 			"last_login":             user.LastLogin,
+			"accepted_terms":		  user.AcceptedTermsOfService,
 		}},
 	)
 	return err

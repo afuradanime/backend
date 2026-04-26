@@ -5,6 +5,7 @@ import (
 
 	"github.com/afuradanime/backend/config"
 	"github.com/afuradanime/backend/internal/core/domain"
+	"github.com/afuradanime/backend/internal/core/domain/value"
 	"github.com/afuradanime/backend/internal/core/utils"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -19,7 +20,7 @@ func ActivityMiddleware(cfg *config.JWTConfig, tracker *domain.ActivityTracker) 
 					if claims, ok := parsed.Claims.(jwt.MapClaims); ok {
 						if idValue, ok := claims["id"]; ok {
 							if userID, ok := idValue.(float64); ok {
-								tracker.RecordActivity(int(userID))
+								tracker.RecordActivity(int(userID), value.Online)
 							}
 						}
 					}

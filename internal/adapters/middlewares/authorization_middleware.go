@@ -11,8 +11,13 @@ func RequireRoleMiddleware(role value.UserRole) func(http.Handler) http.Handler 
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !IsLoggedUserOfRole(r.Context(), role) {
 				http.Error(w, "Forbidden", http.StatusForbidden)
+				return			}
+
+			if !GetAcceptedTermsFromContext(r.Context()) {
+				http.Error(w, "Forbidden", http.StatusForbidden)
 				return
 			}
+
 			next.ServeHTTP(w, r)
 		})
 	}

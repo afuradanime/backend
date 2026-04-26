@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/afuradanime/backend/config"
 	"github.com/afuradanime/backend/internal/core/domain"
@@ -128,36 +129,38 @@ func (gac *GoogleAuthController) Callback(ctx fuego.ContextNoBody) (any, error) 
 	}
 
 	// Check if user exists, if not create a new user
-	db_user, err := gac.userService.GetUserByProvider(context.Background(), "google", userInfo.ID)
+	dbUser, err := gac.userService.GetUserByProvider(context.Background(), "google", userInfo.ID)
+	firstLogin := false
 	if err != nil {
 		// User does not exist, create new user
-		user_model, err := domain.NewUser(userInfo.Name, userInfo.Email)
+		userModel, err := domain.NewUser(userInfo.Name, userInfo.Email)
 		if err != nil {
 			return nil, fuego.InternalServerError{Detail: "Failed to create user: " + err.Error()}
 		}
 
 		// Set provider info in model
-		// user_model.Provider = "google"
-		// user_model.ProviderID = userInfo.ID
-		user_model.UpdateProviderInformation("google", userInfo.ID)
-		user_model.AvatarURL = userInfo.Picture
+		// userModel.Provider = "google"
+		// userModel.ProviderID = userInfo.ID
+		userModel.UpdateProviderInformation("google", userInfo.ID)
+		userModel.AvatarURL = userInfo.Picture
 
 		// Register the user
-		_, err = gac.userService.RegisterUser(context.Background(), user_model)
+		_, err = gac.userService.RegisterUser(context.Background(), userModel)
 		if err != nil {
 			return nil, fuego.InternalServerError{Detail: "Failed to register user: " + err.Error()}
 		}
 
-		db_user = user_model
+		dbUser = userModel
+		firstLogin = true
 	} else {
 		// Update last login for existing user
-		err = gac.userService.UpdateLastLogin(context.Background(), db_user.ID)
+		err = gac.userService.UpdateLastLogin(context.Background(), dbUser.ID)
 		if err != nil {
 			// erm... how did this happen !
 		}
 	}
 
-	jwtToken, err := gac.jwtService.GenerateJWT(*db_user)
+	jwtToken, err := gac.jwtService.GenerateJWT(*dbUser)
 	if err != nil {
 		return nil, fuego.InternalServerError{Detail: "Failed to generate JWT: " + err.Error()}
 	}
@@ -170,6 +173,17 @@ func (gac *GoogleAuthController) Callback(ctx fuego.ContextNoBody) (any, error) 
 		HttpOnly: true,
 		Secure:   false, // https
 	})
+
+	if firstLogin {
+		// Set first login cookie
+		http.SetCookie(ctx.Response(), &http.Cookie{
+			Name:     "first_login",
+			Value:    strconv.FormatBool(firstLogin),
+			Path:     "/",
+			HttpOnly: false,
+			MaxAge: 60, //Expire in 60 seconds
+		})
+	}
 
 	return ctx.Redirect(307, gac.config.FrontendURL)
 }

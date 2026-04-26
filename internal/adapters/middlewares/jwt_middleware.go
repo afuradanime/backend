@@ -15,8 +15,9 @@ import (
 type contextKey string
 
 const (
-	UserIDKey    contextKey = "userID"
-	UserRolesKey contextKey = "userRoles"
+	UserIDKey    			contextKey = "userID"
+	UserRolesKey 			contextKey = "userRoles"
+	UserAcceptedTermsKey 	contextKey = "userAcceptedTerms"
 )
 
 func GetUserIDFromContext(ctx context.Context) (int, bool) {
@@ -31,6 +32,11 @@ func GetUserRolesFromContext(ctx context.Context) ([]value.UserRole, bool) {
 	}
 
 	return utils.DecodeRoleList(roles), ok
+}
+
+func GetAcceptedTermsFromContext(ctx context.Context) bool {
+    accepted, ok := ctx.Value(UserAcceptedTermsKey).(bool)
+    return ok && accepted
 }
 
 func IsLoggedUserOfRole(ctx context.Context, role value.UserRole) bool {
@@ -94,7 +100,12 @@ func JWTMiddleware(cfg *config.JWTConfig, tracker *domain.ActivityTracker) func(
 				ctx = context.WithValue(ctx, UserRolesKey, roles)
 			}
 
-			tracker.RecordActivity(int(userID))
+			acceptedTerms, ok := claims["acceptedTermsOfService"]
+			if ok {
+				ctx = context.WithValue(ctx, UserAcceptedTermsKey, acceptedTerms.(bool))
+			}
+
+			tracker.RecordActivity(int(userID), value.Online)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

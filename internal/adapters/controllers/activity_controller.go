@@ -16,8 +16,8 @@ func NewActivityController(tracker *domain.ActivityTracker) *ActivityController 
 }
 
 type UserActivityResponse struct {
-	UserID   int  `json:"user_id"`
-	IsOnline bool `json:"is_online"`
+	UserID   int `json:"user_id"`
+	IsOnline int `json:"is_online"`
 }
 
 type ActivityStatsResponse struct {
