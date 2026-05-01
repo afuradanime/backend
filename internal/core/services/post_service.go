@@ -117,6 +117,8 @@ func (s *PostService) CreatePost(ctx context.Context, parentId string, parentTyp
 		if err != nil {
 			return nil, errors.New("Invalid parent id: " + err.Error())
 		}
+	} else if parentType == value.ParentTypePost {
+		// Validations for replies are already handled in CreateReply.
 	} else {
 		return nil, errors.New("Unsupported thread context")
 	}

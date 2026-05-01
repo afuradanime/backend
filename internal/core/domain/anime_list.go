@@ -125,8 +125,8 @@ func (al *UserListItem) UpdateStatus(newStatus value.AnimeListItemStatus) {
 }
 
 func (al *UserListItem) UpdateProgress(episodesWatched uint32, totalEpisodes uint32) error {
-	// cannot watch more episodes than the anime has (unless it's still airing, in which case totalEpisodes would be 0 or nil)
-	if episodesWatched > totalEpisodes && al.Status == value.AnimeListItemStatusCompleted {
+	// cannot watch more episodes than the anime has (unless it's still airing, in which case totalEpisodes would be 0)
+	if totalEpisodes > 0 && episodesWatched > totalEpisodes {
 		return &domain_errors.InvalidEpisodeCountErr{}
 	}
 
@@ -134,8 +134,8 @@ func (al *UserListItem) UpdateProgress(episodesWatched uint32, totalEpisodes uin
 	now := time.Now()
 	al.EditedAt = uint32(now.Unix())
 
-	// if the user has watched all episodes, mark the anime as completed
-	if episodesWatched >= totalEpisodes {
+	// if the user has watched all episodes (and we know the total), mark the anime as completed
+	if totalEpisodes > 0 && episodesWatched >= totalEpisodes {
 		al.Status = value.AnimeListItemStatusCompleted
 	}
 
