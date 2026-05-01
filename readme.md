@@ -74,6 +74,9 @@ A base de dados de animes tem instruções de formação no projecto do [AFC](ht
 3. **Configurações `.env`**:
 O backend procura um ficheiro `.env` com certas configurações do seu sistema, um exemplo pode ser encontrado no ficheiro [example.env](./example.env)
 
+3. **Configurações `.env.test`**:
+O backend procura um ficheiro `.env.test` para executar os testes, este pode ser igual ao `.env`; O campo de _bootstraping_ será ignorado e é altamente recomendado escolher uma base de dados e chaves diferentes / de _mock_
+
 ## Como correr o backend
 
 `go run .\cmd\api\main.go`

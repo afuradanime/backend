@@ -6,6 +6,7 @@ import (
 	"github.com/afuradanime/backend/cmd/api/app/database"
 	"github.com/afuradanime/backend/config"
 	"github.com/afuradanime/backend/internal/adapters/middlewares"
+	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/utils"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-fuego/fuego"
@@ -14,10 +15,11 @@ import (
 )
 
 type Application struct {
-	Config       *config.Config
-	OAuth2Config *oauth2.Config
-	JWTConfig    *config.JWTConfig
-	Mongo        *mongo.Database // The mongo database handle
+	Config          *config.Config
+	OAuth2Config    *oauth2.Config
+	JWTConfig       *config.JWTConfig
+	Mongo           *mongo.Database // The mongo database handle
+	ActivityTracker *domain.ActivityTracker
 }
 
 func New() *Application {
@@ -49,7 +51,7 @@ func New() *Application {
 		JWTConfig:    JWTConfig,
 	}
 
-	if Config.ShouldBootstrap || env == "test" /* Always bootstrap on test */ {
+	if Config.ShouldBootstrap && env == "test" /* Always bootstrap on test */ {
 		log.Println("Bootstrapping database...")
 		Bootstrap(app.Mongo)
 	}

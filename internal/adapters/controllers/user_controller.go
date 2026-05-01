@@ -73,14 +73,16 @@ func (uc *UserController) GetUserByID(ctx fuego.ContextNoBody) (*domain.User, er
 }
 
 type UpdateUserInfoBody struct {
-	Email                 *string   `json:"Email"`
-	Username              *string   `json:"Username"`
-	Location              *string   `json:"Location"`
-	Pronouns              *string   `json:"Pronouns"`
-	Socials               *[]string `json:"Socials"`
-	Birthday              *string   `json:"Birthday"`
-	AllowsFriendRequests  *bool     `json:"AllowsFriendRequests"`
-	AllowsRecommendations *bool     `json:"AllowsRecommendations"`
+	Email                 	*string   `json:"Email"`
+	Username              	*string   `json:"Username"`
+	Location              	*string   `json:"Location"`
+	Pronouns              	*string   `json:"Pronouns"`
+	Socials               	*[]string `json:"Socials"`
+	Birthday              	*string   `json:"Birthday"`
+	AllowsFriendRequests  	*bool     `json:"AllowsFriendRequests"`
+	AllowsRecommendations 	*bool     `json:"AllowsRecommendations"`
+	AvatarURL 			  	*string	  `json:"AvatarURL"`
+	AcceptedTermsOfService  *bool	  `json:"AcceptedTermsOfService"`
 }
 
 func (uc *UserController) UpdateUserInfo(ctx fuego.ContextWithBody[UpdateUserInfoBody]) (any, error) {
@@ -113,6 +115,8 @@ func (uc *UserController) UpdateUserInfo(ctx fuego.ContextWithBody[UpdateUserInf
 		birthday,
 		updateData.AllowsFriendRequests,
 		updateData.AllowsRecommendations,
+		updateData.AvatarURL,
+		updateData.AcceptedTermsOfService,
 	)
 	if err != nil {
 		return nil, fuego.InternalServerError{Detail: err.Error()}

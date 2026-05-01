@@ -27,10 +27,11 @@ type User struct {
 	Socials  []value.URL   `json:"Socials" bson:"socials"`
 
 	// Rights
-	AllowsFriendRequests  bool `json:"AllowsFriendRequests" bson:"allows_friend_requests"`
-	AllowsRecommendations bool `json:"AllowsRecommendations" bson:"allows_recommendations"`
-	CanPost               bool `json:"CanPost" bson:"can_post"`
-	CanTranslate          bool `json:"CanTranslate" bson:"can_translate"`
+	AllowsFriendRequests  	bool `json:"AllowsFriendRequests" bson:"allows_friend_requests"`
+	AllowsRecommendations 	bool `json:"AllowsRecommendations" bson:"allows_recommendations"`
+	CanPost               	bool `json:"CanPost" bson:"can_post"`
+	CanTranslate          	bool `json:"CanTranslate" bson:"can_translate"`
+	AcceptedTermsOfService	bool `json:"AcceptedTermsOfService" bson:"accepted_terms"`
 
 	// Authentication / Authorization
 	Provider   string           `json:"Provider" bson:"provider"`
@@ -63,16 +64,17 @@ func NewUser(username string, email string) (*User, error) {
 
 	return &User{
 		// ID will be set by mongo auto-increment
-		Username:              *newUsername,
-		Email:                 encryptedEmail,
-		Socials:               make([]value.URL, 0),
-		Roles:                 []value.UserRole{value.UserRoleUser},
-		AllowsFriendRequests:  true,
-		AllowsRecommendations: true,
-		CanPost:               true,
-		CanTranslate:          true,
-		Badges:                make([]value.UserBadges, 0),
-		CreatedAt:             time.Now(),
+		Username:              	*newUsername,
+		Email:                 	encryptedEmail,
+		Socials:               	make([]value.URL, 0),
+		Roles:                 	[]value.UserRole{value.UserRoleUser},
+		AllowsFriendRequests:  	true,
+		AllowsRecommendations: 	true,
+		CanPost:               	true,
+		CanTranslate:          	true,
+		AcceptedTermsOfService: false,
+		Badges:                	make([]value.UserBadges, 0),
+		CreatedAt:             	time.Now(),
 	}, nil
 }
 
@@ -216,4 +218,8 @@ func (u *User) HasRole(role value.UserRole) bool {
 func (u *User) RestrictAccesses(canPost, canTranslate bool) {
 	u.CanPost = canPost
 	u.CanTranslate = canTranslate
+}
+
+func (u *User) AcceptTermsOfService() {
+	u.AcceptedTermsOfService = true
 }

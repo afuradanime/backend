@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"strconv"
+
 	"github.com/afuradanime/backend/internal/adapters/middlewares"
 	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/interfaces"
@@ -22,14 +24,11 @@ type GroupListResponse struct {
 }
 
 func (gc *GroupController) GetGroups(ctx fuego.ContextNoBody) (GroupListResponse, error) {
-
 	pageNumber, pageSize := utils.GetPaginationParams(ctx, 20)
-
 	groups, pagination, err := gc.groupService.GetGroups(ctx.Context(), pageNumber, pageSize)
 	if err != nil {
 		return GroupListResponse{}, fuego.InternalServerError{Detail: "Failed to retrieve groups"}
 	}
-
 	return GroupListResponse{
 		Data:       groups,
 		Pagination: pagination,
@@ -37,16 +36,14 @@ func (gc *GroupController) GetGroups(ctx fuego.ContextNoBody) (GroupListResponse
 }
 
 func (gc *GroupController) GetGroupByID(ctx fuego.ContextNoBody) (*domain.Group, error) {
-	groupID := ctx.PathParam("id")
-	if groupID == "" {
+	groupID, err := strconv.Atoi(ctx.PathParam("id"))
+	if err != nil {
 		return nil, fuego.BadRequestError{Detail: "Invalid group ID"}
 	}
-
 	group, err := gc.groupService.GetGroup(ctx.Context(), groupID)
 	if err != nil {
 		return nil, fuego.NotFoundError{Detail: err.Error()}
 	}
-
 	return group, nil
 }
 
@@ -62,20 +59,15 @@ func (gc *GroupController) UpdateGroup(ctx fuego.ContextWithBody[UpdateGroupBody
 	if !ok {
 		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
-
-	groupID := ctx.PathParam("id")
-	if groupID == "" {
+	groupID, err := strconv.Atoi(ctx.PathParam("id"))
+	if err != nil {
 		return nil, fuego.BadRequestError{Detail: "Invalid group ID"}
 	}
-
 	body, err := ctx.Body()
 	if err != nil {
 		return nil, fuego.BadRequestError{Detail: "Invalid request body"}
 	}
-
-	// since service expects strings, unwrap pointers safely
 	var name, description, rules, icon string
-
 	if body.Name != nil {
 		name = *body.Name
 	}
@@ -88,21 +80,10 @@ func (gc *GroupController) UpdateGroup(ctx fuego.ContextWithBody[UpdateGroupBody
 	if body.Icon != nil {
 		icon = *body.Icon
 	}
-
-	err = gc.groupService.UpdateGroup(
-		ctx.Context(),
-		groupID,
-		name,
-		description,
-		rules,
-		icon,
-		userID,
-	)
-
+	err = gc.groupService.UpdateGroup(ctx.Context(), groupID, name, description, rules, icon, userID)
 	if err != nil {
 		return nil, fuego.InternalServerError{Detail: err.Error()}
 	}
-
 	return nil, nil
 }
 
@@ -115,28 +96,18 @@ func (gc *GroupController) AddGroupModerator(ctx fuego.ContextWithBody[ModifyMod
 	if !ok {
 		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
-
-	groupID := ctx.PathParam("id")
-	if groupID == "" {
+	groupID, err := strconv.Atoi(ctx.PathParam("id"))
+	if err != nil {
 		return nil, fuego.BadRequestError{Detail: "Invalid group ID"}
 	}
-
 	body, err := ctx.Body()
 	if err != nil {
 		return nil, fuego.BadRequestError{Detail: "Invalid request body"}
 	}
-
-	err = gc.groupService.AddGroupModerator(
-		ctx.Context(),
-		groupID,
-		body.ModeratorID,
-		userID,
-	)
-
+	err = gc.groupService.AddGroupModerator(ctx.Context(), groupID, body.ModeratorID, userID)
 	if err != nil {
 		return nil, fuego.InternalServerError{Detail: err.Error()}
 	}
-
 	return nil, nil
 }
 
@@ -145,27 +116,17 @@ func (gc *GroupController) RemoveGroupModerator(ctx fuego.ContextWithBody[Modify
 	if !ok {
 		return nil, fuego.UnauthorizedError{Detail: "Unauthorized"}
 	}
-
-	groupID := ctx.PathParam("id")
-	if groupID == "" {
+	groupID, err := strconv.Atoi(ctx.PathParam("id"))
+	if err != nil {
 		return nil, fuego.BadRequestError{Detail: "Invalid group ID"}
 	}
-
 	body, err := ctx.Body()
 	if err != nil {
 		return nil, fuego.BadRequestError{Detail: "Invalid request body"}
 	}
-
-	err = gc.groupService.RemoveGroupModerator(
-		ctx.Context(),
-		groupID,
-		body.ModeratorID,
-		userID,
-	)
-
+	err = gc.groupService.RemoveGroupModerator(ctx.Context(), groupID, body.ModeratorID, userID)
 	if err != nil {
 		return nil, fuego.InternalServerError{Detail: err.Error()}
 	}
-
 	return nil, nil
 }

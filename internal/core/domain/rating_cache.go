@@ -2,6 +2,7 @@ package domain
 
 import (
 	"github.com/afuradanime/backend/internal/core/utils"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 const RECENT_EVALUATION_RING_SIZE = 5
@@ -115,4 +116,13 @@ func (r *RatingCache) addToRecent(userId uint32, s, v, st uint32) {
 			Overall:    uint8((s + v + st) / 3),
 		},
 	})
+}
+
+func (s *RatingCache) UnmarshalBSON(data []byte) error {
+	// Initialize the pointer before decoding
+	if s.RecentEvaluation == nil {
+		s.RecentEvaluation = utils.NewRingBuffer[UserRating](5)
+	}
+	type Alias RatingCache
+	return bson.Unmarshal(data, (*Alias)(s))
 }

@@ -1,5 +1,7 @@
 package domain_errors
 
+import "strconv"
+
 type NoModeratorsLeftError struct{}
 
 func (e NoModeratorsLeftError) Error() string {
@@ -19,9 +21,9 @@ func (e AlreadyModeratingError) Error() string {
 }
 
 type GroupNotFoundError struct {
-	GroupID string
+	GroupID int
 }
 
 func (e GroupNotFoundError) Error() string {
-	return "User with ID " + e.GroupID + " not found"
+	return "User with ID " + strconv.Itoa(e.GroupID) + " not found"
 }

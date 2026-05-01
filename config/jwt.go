@@ -27,6 +27,7 @@ func LoadJWTConfig() *JWTConfig {
 
 	if err := godotenv.Load(envFile); err != nil {
 		log.Println("Warning: no .env file found at", envFile)
+		panic("No .env file")
 	}
 
 	secret := os.Getenv("JWT_SECRET")

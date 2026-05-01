@@ -83,13 +83,18 @@ func (c *PostController) DeletePost(ctx fuego.ContextNoBody) (any, error) {
 func (c *PostController) GetPostReplies(ctx fuego.ContextNoBody) ([]*domain.Post, error) {
 	parentId := ctx.PathParam("parent_id")
 
-	replies, err := c.postService.GetPostReplies(ctx.Context(), parentId)
+	parentTypeInt, err := strconv.Atoi(ctx.QueryParam("parent_type"))
+	if err != nil {
+		return nil, fuego.BadRequestError{Detail: "Invalid parent_type: " + err.Error()}
+	}
+	parentType := value.PostParentType(parentTypeInt)
+
+	replies, err := c.postService.GetPostReplies(ctx.Context(), parentId, parentType)
 	if errors.Is(err, domain_errors.PostNotFoundError{}) {
 		return nil, fuego.NotFoundError{Detail: err.Error()}
 	} else if err != nil {
 		return nil, fuego.InternalServerError{Detail: "Internal error when fetching post replies: " + err.Error()}
 	}
-
 	return replies, nil
 }
 

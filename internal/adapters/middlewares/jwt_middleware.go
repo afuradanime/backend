@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/afuradanime/backend/config"
+	"github.com/afuradanime/backend/internal/core/domain"
 	"github.com/afuradanime/backend/internal/core/domain/value"
 	"github.com/afuradanime/backend/internal/core/utils"
 	"github.com/golang-jwt/jwt/v5"
@@ -14,8 +15,9 @@ import (
 type contextKey string
 
 const (
-	UserIDKey    contextKey = "userID"
-	UserRolesKey contextKey = "userRoles"
+	UserIDKey    			contextKey = "userID"
+	UserRolesKey 			contextKey = "userRoles"
+	UserAcceptedTermsKey 	contextKey = "userAcceptedTerms"
 )
 
 func GetUserIDFromContext(ctx context.Context) (int, bool) {
@@ -32,6 +34,11 @@ func GetUserRolesFromContext(ctx context.Context) ([]value.UserRole, bool) {
 	return utils.DecodeRoleList(roles), ok
 }
 
+func GetAcceptedTermsFromContext(ctx context.Context) bool {
+    accepted, ok := ctx.Value(UserAcceptedTermsKey).(bool)
+    return ok && accepted
+}
+
 func IsLoggedUserOfRole(ctx context.Context, role value.UserRole) bool {
 
 	roles, ok := GetUserRolesFromContext(ctx)
@@ -42,7 +49,7 @@ func IsLoggedUserOfRole(ctx context.Context, role value.UserRole) bool {
 	return slices.Contains(roles, role)
 }
 
-func JWTMiddleware(cfg *config.JWTConfig) func(http.Handler) http.Handler {
+func JWTMiddleware(cfg *config.JWTConfig, tracker *domain.ActivityTracker) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -93,6 +100,12 @@ func JWTMiddleware(cfg *config.JWTConfig) func(http.Handler) http.Handler {
 				ctx = context.WithValue(ctx, UserRolesKey, roles)
 			}
 
+			acceptedTerms, ok := claims["acceptedTermsOfService"]
+			if ok {
+				ctx = context.WithValue(ctx, UserAcceptedTermsKey, acceptedTerms.(bool))
+			}
+
+			tracker.RecordActivity(int(userID), value.Online)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
