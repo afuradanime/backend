@@ -81,6 +81,7 @@ type UpdateUserInfoBody struct {
 	Birthday              	*string   `json:"Birthday"`
 	AllowsFriendRequests  	*bool     `json:"AllowsFriendRequests"`
 	AllowsRecommendations 	*bool     `json:"AllowsRecommendations"`
+	ListPrivate			 	*bool     `json:"ListPrivate"`
 	AvatarURL 			  	*string	  `json:"AvatarURL"`
 	AcceptedTermsOfService  *bool	  `json:"AcceptedTermsOfService"`
 }
@@ -115,6 +116,7 @@ func (uc *UserController) UpdateUserInfo(ctx fuego.ContextWithBody[UpdateUserInf
 		birthday,
 		updateData.AllowsFriendRequests,
 		updateData.AllowsRecommendations,
+		updateData.ListPrivate,
 		updateData.AvatarURL,
 		updateData.AcceptedTermsOfService,
 	)

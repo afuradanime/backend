@@ -214,7 +214,7 @@ func (a *Application) RegisterRecommendationsModule(s *fuego.Server) {
 	ratingCacheRepo := repositories.NewRatingCacheRepository(a.Mongo)
 	ratingCacheService := services.NewRatingCacheService(*ratingCacheRepo)
 	animeListSvc := services.NewAnimeListService(repositories.NewAnimeListRepository(a.Mongo),
-		repositories.NewAnimeRepository(), ratingCacheService)
+	repositories.NewAnimeRepository(), ratingCacheService, userRepo)
 
 	service := services.NewRecommendationService(repo, userRepo, friendshipSvc, animeListSvc)
 	controller := controllers.NewRecommendationController(service)
@@ -230,19 +230,23 @@ func (a *Application) RegisterAnimeListModule(s *fuego.Server) {
 	animeRepo := repositories.NewAnimeRepository()
 	ratingCacheRepo := repositories.NewRatingCacheRepository(a.Mongo)
 	ratingCacheService := services.NewRatingCacheService(*ratingCacheRepo)
-	listService := services.NewAnimeListService(listRepo, animeRepo, ratingCacheService)
+	userRepo := repositories.NewUserRepository(a.Mongo)
+	listService := services.NewAnimeListService(listRepo, animeRepo, ratingCacheService, userRepo)
 
 	// Build recommendation service for dismissal on add
-	userRepo := repositories.NewUserRepository(a.Mongo)
 	friendshipSvc := services.NewFriendshipService(userRepo, repositories.NewFriendshipRepository(a.Mongo))
 	recommendationRepo := repositories.NewRecommendationRepository(a.Mongo)
 	recommendationSvc := services.NewRecommendationService(recommendationRepo, userRepo, friendshipSvc, listService)
 
 	listController := controllers.NewAnimeListController(listService, recommendationSvc)
 
+	// Public route with optional auth
 	g := fuego.Group(s, "/animelist")
-	fuego.Get(g, "/{userId}", listController.GetUserList)
-
+	optionalAuthGroup := fuego.Group(g, "/")
+	fuego.Use(optionalAuthGroup, middlewares.OptionalJWTMiddleware(a.JWTConfig))
+	fuego.Get(optionalAuthGroup, "/{userId}", listController.GetUserList)
+	
+	// Protected routes
 	authGroup := fuego.Group(g, "/")
 	fuego.Use(authGroup, middlewares.JWTMiddleware(a.JWTConfig, a.ActivityTracker))
 	fuego.Post(authGroup, "/{userId}/{animeId}", listController.AddAnime)

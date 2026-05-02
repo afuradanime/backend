@@ -44,7 +44,10 @@ func (s *UserService) RegisterUser(ctx context.Context, user *domain.User) (*dom
 	return added_user, nil
 }
 
-func (s *UserService) UpdatePersonalInfo(ctx context.Context, id int, email *string, username *string, location *string, pronouns *string, socials *[]string, birthday *time.Time, allowsFR, allowsRec *bool, avatarURL *string, acceptTerms *bool) error {
+func (s *UserService) UpdatePersonalInfo(ctx context.Context, id int, email *string, username *string, location *string, 
+	pronouns *string, socials *[]string, birthday *time.Time, allowsFR, allowsRec, privateList *bool, avatarURL *string, 
+	acceptTerms *bool) error {
+
 	user, err := s.GetUserByID(ctx, id)
 	if err != nil || user == nil {
 		return err
@@ -79,6 +82,9 @@ func (s *UserService) UpdatePersonalInfo(ctx context.Context, id int, email *str
 	}
 	if allowsRec != nil {
 		user.UpdateAllowsRecommendations(*allowsRec)
+	}
+	if privateList != nil {
+		user.UpdateListPrivacy(*privateList)
 	}
 	if avatarURL != nil {
 		user.UpdateAvatarURL(*avatarURL)

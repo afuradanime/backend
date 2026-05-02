@@ -51,7 +51,7 @@ func New() *Application {
 		JWTConfig:    JWTConfig,
 	}
 
-	if Config.ShouldBootstrap && env == "test" /* Always bootstrap on test */ {
+	if Config.ShouldBootstrap || env == "test" /* Always bootstrap on test */ {
 		log.Println("Bootstrapping database...")
 		Bootstrap(app.Mongo)
 	}

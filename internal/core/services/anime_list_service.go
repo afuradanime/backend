@@ -15,17 +15,20 @@ import (
 )
 
 type AnimeListService struct {
-	listRepo           interfaces.AnimeListRepository
-	animeRepo          interfaces.AnimeRepository
-	ratingCacheService interfaces.RatingCacheService
-	mapper             *mappers.AnimeListMapper
+	listRepo           	interfaces.AnimeListRepository
+	animeRepo          	interfaces.AnimeRepository
+	ratingCacheService 	interfaces.RatingCacheService
+	userRepo 			interfaces.UserRepository
+	mapper             	*mappers.AnimeListMapper
 }
 
-func NewAnimeListService(listRepo interfaces.AnimeListRepository, animeRepo interfaces.AnimeRepository, ratingCacheService interfaces.RatingCacheService) *AnimeListService {
+func NewAnimeListService(listRepo interfaces.AnimeListRepository, animeRepo interfaces.AnimeRepository, 
+	ratingCacheService interfaces.RatingCacheService, userRepo interfaces.UserRepository) *AnimeListService {
 	return &AnimeListService{
 		listRepo:           listRepo,
 		animeRepo:          animeRepo,
 		ratingCacheService: ratingCacheService,
+		userRepo: 			userRepo,
 		mapper:             mappers.NewAnimeListMapper(),
 	}
 }
@@ -209,7 +212,26 @@ func (s *AnimeListService) FetchUserListItem(ctx context.Context, userID int, an
 	return s.mapper.ToDto(item, anime), nil
 }
 
-func (s *AnimeListService) FetchUserList(ctx context.Context, userID int, status *value.AnimeListItemStatus) (*dtos.UserAnimeListDTO, error) {
+func (s *AnimeListService) FetchUserList(ctx context.Context, userID int, viewerID *int, status *value.AnimeListItemStatus) (*dtos.UserAnimeListDTO, error) {
+	
+	user, err := s.userRepo.GetUserById(ctx, userID)
+	if err != nil {
+		return nil, domain_errors.UserNotFoundError{}
+	}
+
+	// Check if list is private
+	log.Printf("PrivateAnimeList: %v", user.PrivateAnimeList)
+	log.Printf("viewerID: %v", viewerID)
+	if viewerID != nil {
+		log.Printf("viewerID value: %d, userID: %d, match: %v", *viewerID, userID, *viewerID == userID)
+	}
+	if user.PrivateAnimeList {
+		isOwner := viewerID != nil && *viewerID == userID
+		if !isOwner {
+			return nil, &domain_errors.PrivateListError{}
+		}
+	}
+	
 	list, err := s.listRepo.FetchUserList(ctx, userID)
 	if err != nil {
 		return nil, err

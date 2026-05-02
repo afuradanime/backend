@@ -45,7 +45,7 @@ func Bootstrap(m *mongo.Database) {
 	animeListRepo := repositories.NewAnimeListRepository(m)
 	ratingCacheRepo := repositories.NewRatingCacheRepository(m)
 	ratingCacheService := services.NewRatingCacheService(*ratingCacheRepo)
-	animeListService := services.NewAnimeListService(animeListRepo, repositories.NewAnimeRepository(), ratingCacheService)
+	animeListService := services.NewAnimeListService(animeListRepo, repositories.NewAnimeRepository(), ratingCacheService, userRepo)
 	BootstrapAnimeList(context.Background(), animeListRepo, krayID, animeListService)
 
 	// Bootstrap groups
@@ -74,6 +74,7 @@ func BootstrapUsers(ctx context.Context, userRepo *repositories.UserRepository) 
 
 	userKray.UpdateAvatarURL("/pfps/d7dea5d3e09941f563dabf364b4db31cac63a5f1.png")
 	userKray.CreatedAt = time.Date(2025, 1, 25, 0, 0, 0, 0, time.UTC)
+	userKray.AcceptTermsOfService()
 
 	// Create user and get auto-generated ID
 	_, err = userRepo.CreateUser(ctx, userKray)
@@ -101,6 +102,7 @@ func BootstrapUsers(ctx context.Context, userRepo *repositories.UserRepository) 
 	userTaiko.RewardBadge(value.UserBadgeSuperMegaIllyaFan)
 
 	userTaiko.CreatedAt = time.Date(2025, 1, 25, 0, 0, 0, 0, time.UTC)
+	userTaiko.AcceptTermsOfService()
 
 	// Create user and get auto-generated ID
 	_, err = userRepo.CreateUser(ctx, userTaiko)
@@ -122,6 +124,7 @@ func BootstrapUsers(ctx context.Context, userRepo *repositories.UserRepository) 
 	userTest.RewardBadge(value.UserBadgeBrand)
 	userTest.AddRole(value.UserRoleModerator)
 	userTest.AddRole(value.UserRoleAdmin)
+	userTest.AcceptTermsOfService()
 
 	// Create user and get auto-generated ID
 	_, err = userRepo.CreateUser(ctx, userTest)
@@ -196,7 +199,7 @@ func BootstrapGroups(ctx context.Context, groupRepo *repositories.GroupRepositor
 		panic(err)
 	}
 
-	group3, _ := domain.NewGroup("Recomendações", "Partilha o que tens visto e lido recentemente com o pessoal", "Partilha o que te faz feliz", "https://preview.redd.it/susie-deltarune-drinking-beer-and-eating-chips-while-v0-4544ptv31mle1.jpg?width=1080&crop=smart&auto=webp&s=0d5ae18a5c957e30532b7615d8857c3c64025e41")
+	group3, _ := domain.NewGroup("Recomendações", "Partilha o que tens visto e lido recentemente com o pessoal", "Partilha o que te faz feliz", "https://i.imgur.com/placeholder.png")
 	err = groupRepo.CreateGroup(ctx, group3)
 	if err != nil {
 		panic(err)

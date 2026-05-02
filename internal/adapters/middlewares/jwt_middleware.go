@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"slices"
 
@@ -36,6 +37,7 @@ func GetUserRolesFromContext(ctx context.Context) ([]value.UserRole, bool) {
 
 func GetAcceptedTermsFromContext(ctx context.Context) bool {
     accepted, ok := ctx.Value(UserAcceptedTermsKey).(bool)
+	log.Print("Accepted: %d", accepted)
     return ok && accepted
 }
 
@@ -47,6 +49,48 @@ func IsLoggedUserOfRole(ctx context.Context, role value.UserRole) bool {
 	}
 
 	return slices.Contains(roles, role)
+}
+
+func OptionalJWTMiddleware(config *config.JWTConfig) func(http.Handler) http.Handler {
+    return func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            cookie, err := r.Cookie("jwt")
+            if err != nil || cookie.Value == "" {
+                // No cookie, continue without user in context
+                next.ServeHTTP(w, r)
+                return
+            }
+
+            parsed, err := utils.GetParsedJWTClaims(cookie.Value, config.Secret)
+            if err != nil || !parsed.Valid {
+                // Invalid token, still continue without blocking
+                next.ServeHTTP(w, r)
+                return
+            }
+
+            claims, ok := parsed.Claims.(jwt.MapClaims)
+            if !ok {
+                next.ServeHTTP(w, r)
+                return
+            }
+
+            ctx := r.Context()
+
+            if idValue, ok := claims["id"]; ok {
+                if userID, ok := idValue.(float64); ok {
+                    ctx = context.WithValue(ctx, UserIDKey, int(userID))
+                }
+            }
+            if roles, ok := claims["role"]; ok {
+                ctx = context.WithValue(ctx, UserRolesKey, roles)
+            }
+            if acceptedTerms, ok := claims["acceptedTermsOfService"]; ok {
+                ctx = context.WithValue(ctx, UserAcceptedTermsKey, acceptedTerms.(bool))
+            }
+
+            next.ServeHTTP(w, r.WithContext(ctx))
+        })
+    }
 }
 
 func JWTMiddleware(cfg *config.JWTConfig, tracker *domain.ActivityTracker) func(http.Handler) http.Handler {
@@ -104,6 +148,11 @@ func JWTMiddleware(cfg *config.JWTConfig, tracker *domain.ActivityTracker) func(
 			if ok {
 				ctx = context.WithValue(ctx, UserAcceptedTermsKey, acceptedTerms.(bool))
 			}
+			
+			// if !GetAcceptedTermsFromContext(r.Context()) {
+			// 	http.Error(w, "Terms of service not accepted", http.StatusForbidden)
+			// 	return
+			// }
 
 			tracker.RecordActivity(int(userID), value.Online)
 			next.ServeHTTP(w, r.WithContext(ctx))

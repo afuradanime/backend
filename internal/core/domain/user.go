@@ -29,6 +29,7 @@ type User struct {
 	// Rights
 	AllowsFriendRequests  	bool `json:"AllowsFriendRequests" bson:"allows_friend_requests"`
 	AllowsRecommendations 	bool `json:"AllowsRecommendations" bson:"allows_recommendations"`
+	PrivateAnimeList		bool `json:"PrivateAnimeList" bson:"private_list"`
 	CanPost               	bool `json:"CanPost" bson:"can_post"`
 	CanTranslate          	bool `json:"CanTranslate" bson:"can_translate"`
 	AcceptedTermsOfService	bool `json:"AcceptedTermsOfService" bson:"accepted_terms"`
@@ -70,6 +71,7 @@ func NewUser(username string, email string) (*User, error) {
 		Roles:                 	[]value.UserRole{value.UserRoleUser},
 		AllowsFriendRequests:  	true,
 		AllowsRecommendations: 	true,
+		PrivateAnimeList: 		false,
 		CanPost:               	true,
 		CanTranslate:          	true,
 		AcceptedTermsOfService: false,
@@ -180,6 +182,10 @@ func (u *User) UpdateAllowsFriendRequests(allows bool) {
 
 func (u *User) UpdateAllowsRecommendations(allows bool) {
 	u.AllowsRecommendations = allows
+}
+
+func (u *User) UpdateListPrivacy(isPrivate bool) {
+	u.PrivateAnimeList = isPrivate
 }
 
 func (u *User) RewardBadge(badge value.UserBadges) {

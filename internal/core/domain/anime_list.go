@@ -127,7 +127,10 @@ func (al *UserListItem) UpdateStatus(newStatus value.AnimeListItemStatus) {
 func (al *UserListItem) UpdateProgress(episodesWatched uint32, totalEpisodes uint32) error {
 	// cannot watch more episodes than the anime has (unless it's still airing, in which case totalEpisodes would be 0)
 	if totalEpisodes > 0 && episodesWatched > totalEpisodes {
-		return &domain_errors.InvalidEpisodeCountErr{}
+		// return &domain_errors.InvalidEpisodeCountErr{}
+		
+		// I think we should let that happen, just clamp it
+		episodesWatched = totalEpisodes
 	}
 
 	al.EpisodesWatched = uint16(episodesWatched)

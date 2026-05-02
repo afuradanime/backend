@@ -11,6 +11,13 @@ func (e *InvalidRatingErr) Error() string {
 	return errors.New("invalid rating").Error()
 }
 
+type PrivateListError struct{}
+
+func (e *PrivateListError) Error() string {
+	return errors.New("This user set their list to private").Error()
+}
+
+
 type InvalidEpisodeCountErr struct{}
 
 func (e *InvalidEpisodeCountErr) Error() string {

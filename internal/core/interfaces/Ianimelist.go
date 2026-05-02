@@ -40,7 +40,7 @@ type AnimeListService interface {
 	UpdateNotes(ctx context.Context, userID int, animeID uint32, notes string) error
 	RemoveRating(ctx context.Context, userID int, animeID uint32) error
 
-	FetchUserList(ctx context.Context, userID int, status *value.AnimeListItemStatus) (*dtos.UserAnimeListDTO, error)
+	FetchUserList(ctx context.Context, userID int,  viewerID *int, status *value.AnimeListItemStatus) (*dtos.UserAnimeListDTO, error)
 	FetchUserListItem(ctx context.Context, userID int, animeID uint32) (*dtos.UserListItemDTO, error)
 
 	IsInAnimeList(ctx context.Context, receiverID int, animeID int) (bool, error)

@@ -31,6 +31,14 @@ func (c *AnimeListController) GetUserList(ctx fuego.ContextNoBody) (UserAnimeLis
 		return UserAnimeListResponse{}, fuego.BadRequestError{Detail: "Invalid user ID"}
 	}
 
+	var viewerID *int
+	viewerIDTemp, ok := middlewares.GetUserIDFromContext(ctx.Context())
+	if !ok {
+		viewerID = nil
+	} else {
+		viewerID = &viewerIDTemp
+	}
+
 	var statusFilter *value.AnimeListItemStatus
 	statusQuery := ctx.QueryParam("status")
 	if statusQuery != "" {
@@ -43,8 +51,12 @@ func (c *AnimeListController) GetUserList(ctx fuego.ContextNoBody) (UserAnimeLis
 		statusFilter = &st
 	}
 
-	list, err := c.animeListService.FetchUserList(ctx.Context(), userID, statusFilter)
+	list, err := c.animeListService.FetchUserList(ctx.Context(), userID, viewerID, statusFilter)
 	if err != nil {
+		var privateListErr *domain_errors.PrivateListError
+		if errors.As(err, &privateListErr) {
+			return UserAnimeListResponse{}, fuego.ForbiddenError{Detail: "This list is private"}
+		}
 		return UserAnimeListResponse{}, fuego.InternalServerError{Detail: err.Error()}
 	}
 
