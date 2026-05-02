@@ -8,4 +8,5 @@ const (
 	UserBadgeBrand                                   // Is a brand account
 	UserBadgeBetaTester                              // Was a beta tester
 	UserBadgeSuperMegaIllyaFan                       // Illyasviel von Einzbern  (イリヤスフィール・フォン・アインツベルン, Iriyasufīru fon Aintsuberun?), often referred to as Illya[Note 2] (イリヤ, Iriya?), is the Master of Berserker in the Fifth Holy Grail War of Fate/stay night.
+	UserBadgeFartist
 )

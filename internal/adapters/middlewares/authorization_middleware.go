@@ -13,10 +13,10 @@ func RequireRoleMiddleware(role value.UserRole) func(http.Handler) http.Handler 
 				http.Error(w, "Forbidden", http.StatusForbidden)
 				return			}
 
-			if !GetAcceptedTermsFromContext(r.Context()) {
-				http.Error(w, "Forbidden", http.StatusForbidden)
-				return
-			}
+			// if !GetAcceptedTermsFromContext(r.Context()) {
+			// 	http.Error(w, "Forbidden", http.StatusForbidden)
+			// 	return
+			// }
 
 			next.ServeHTTP(w, r)
 		})

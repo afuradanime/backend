@@ -115,7 +115,7 @@ func BootstrapUsers(ctx context.Context, userRepo *repositories.UserRepository) 
 		panic(err)
 	}
 
-	userTest.UpdateLocation("Afurada")
+	userTest.UpdateLocation("São Pedro da Afurada")
 	userTest.UpdateAllowsFriendRequests(false)
 	userTest.UpdateAllowsRecommendations(false)
 
